@@ -1,0 +1,10 @@
+{
+	"database": "postgresql",
+	"endOfLine": "crlf",
+	"language": "postgresql",
+	"plugins": ["prettier-plugin-sql"],
+	"singleQuote": true,
+	"tabWidth": 4,
+	"trailingComma": "all",
+	"useTabs": true
+}
