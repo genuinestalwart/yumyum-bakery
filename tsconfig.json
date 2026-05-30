@@ -23,6 +23,7 @@
 		"noFallthroughCasesInSwitch": false,
 		"ignoreDeprecations": "6.0",
 		"rootDir": "./",
-		"types": ["jest", "node"]
+		"types": ["jest", "node"],
+		"strictPropertyInitialization": false
 	}
 }

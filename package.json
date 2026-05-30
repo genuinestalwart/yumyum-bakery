@@ -16,7 +16,8 @@
 		"test": "jest",
 		"test:watch": "jest --watch",
 		"test:cov": "jest --coverage",
-		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand"
+		"test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
+		"postinstall": "npx prisma generate"
 	},
 	"dependencies": {
 		"@nestjs/common": "^11.1.24",
@@ -26,6 +27,7 @@
 		"@nestjs/swagger": "^11.4.4",
 		"@prisma/adapter-pg": "^7.8.0",
 		"@prisma/client": "^7.8.0",
+		"auth0": "^5.11.0",
 		"class-transformer": "^0.5.1",
 		"class-validator": "^0.15.1",
 		"dotenv": "^17.4.2",
@@ -78,5 +80,13 @@
 		],
 		"coverageDirectory": "../coverage",
 		"testEnvironment": "node"
+	},
+	"allowScripts": {
+		"@nestjs/core@11.1.24": true,
+		"@prisma/engines@7.8.0": true,
+		"@scarf/scarf@1.4.0": true,
+		"esbuild@0.28.0": true,
+		"prisma@7.8.0": true,
+		"unrs-resolver@1.12.2": true
 	}
 }

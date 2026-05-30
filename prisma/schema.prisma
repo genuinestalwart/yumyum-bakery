@@ -7,3 +7,97 @@ generator client {
 datasource db {
     provider = "postgresql"
 }
+
+model CartItem {
+    // Immutable fields
+    id          String @id @default(uuid()) @db.Uuid
+    customer_id String @db.Text
+
+    // Mutable fields
+    amount Int @db.Integer
+
+    // Foreign keys
+    menu_item_id String @db.Uuid
+
+    // Back relation fields
+    menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
+
+    // Constraints
+    @@unique([customer_id, menu_item_id])
+}
+
+model MenuItem {
+    // Immutable fields
+    id           String    @id @default(uuid()) @db.Uuid
+    created_at   DateTime  @default(now())
+    published_at DateTime? @db.Timestamp() // initially null, will be set when `available` is set to true for the first time
+
+    // Mutable fields
+    available   Boolean  @default(false) // if true, the item will be visible to customers and can be ordered
+    description String   @db.VarChar(500)
+    image       String   @db.Text
+    name        String   @db.VarChar(50)
+    prep_time   Int      @db.Integer
+    price       Float    @db.DoublePrecision
+    updated_at  DateTime @updatedAt
+
+    // Front relation fields
+    cart_items    CartItem[]
+    ordered_items OrderedItem[]
+}
+
+model Order {
+    // Immutable fields
+    id          String    @id @default(uuid()) @db.Uuid
+    created_at  DateTime  @default(now())
+    customer_id String?   @db.Text // will be set to null if customer deletes their account
+    rider_id    String?   @db.Text // will be set to null if rider's account is deleted
+    total_price Float     @db.DoublePrecision
+    type        OrderType
+
+    // Mutable fields
+    status     OrderStatus @default(PENDING)
+    updated_at DateTime    @updatedAt
+
+    // Front relation fields
+    ordered_items OrderedItem[]
+}
+
+model OrderedItem {
+    // Immutable fields
+    id             String @id @default(uuid()) @db.Uuid
+    amount         Int    @db.Integer
+    price_per_item Float  @db.DoublePrecision
+
+    // Foreign keys
+    menu_item_id String? @db.Uuid // will be set to null if the menu item is deleted
+    order_id     String  @db.Uuid
+
+    // Back relation fields
+    menu_item MenuItem? @relation(fields: [menu_item_id], onDelete: SetNull, references: [id])
+    order     Order     @relation(fields: [order_id], references: [id])
+}
+
+enum OrderType {
+    DELIVERY
+    PICKUP
+}
+
+enum OrderStatus {
+    // will be set by customer
+    PENDING
+    CANCELLED // can't be set to CANCELLED once the status is PICKED_UP or later
+
+    // will be set by restaurant
+    REJECTED
+    ACCEPTED
+    PREPARING
+    READY_FOR_PICKUP
+    PICKED_UP
+    RETURNED
+    IN_TRANSIT
+    DELIVERED
+
+    // special case scenario
+    FAILED
+}
