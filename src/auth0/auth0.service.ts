@@ -7,10 +7,18 @@ export class Auth0Service implements OnModuleInit {
 
 	onModuleInit() {
 		this.management = new ManagementClient({
-			clientId: `${process.env.AUTH0_CLIENT_ID}`,
-			clientSecret: `${process.env.AUTH0_CLIENT_SECRET}`,
-			domain: `${process.env.AUTH0_DOMAIN}`,
+			clientId: process.env.AUTH0_CLIENT_ID as string,
+			clientSecret: process.env.AUTH0_CLIENT_SECRET as string,
+			domain: process.env.AUTH0_DOMAIN as string,
 		});
+	}
+
+	get roles() {
+		return this.management.roles;
+	}
+
+	get tickets() {
+		return this.management.tickets;
 	}
 
 	get users() {

@@ -1,6 +1,0 @@
-export const ROLES = {
-	ADMIN: 'YYB_ADMIN',
-	CUSTOMER: 'YYB_CUSTOMER',
-	EMPLOYEE: 'YYB_EMPLOYEE',
-	MANAGER: 'YYB_MANAGER',
-} as const;

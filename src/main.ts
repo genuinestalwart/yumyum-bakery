@@ -4,14 +4,21 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import {
 	DocumentBuilder,
-	SwaggerCustomOptions,
-	SwaggerDocumentOptions,
+	type SwaggerCustomOptions,
+	type SwaggerDocumentOptions,
 	SwaggerModule,
 } from '@nestjs/swagger';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
+import { Auth0ExceptionFilter } from './common/filters/auth0-exception.filter';
 
 const bootstrap = async () => {
 	const app = await NestFactory.create(AppModule);
 	app.enableCors();
+
+	app.useGlobalFilters(
+		new Auth0ExceptionFilter(),
+		new PrismaExceptionFilter(),
+	);
 
 	app.useGlobalPipes(
 		new ValidationPipe({ transform: true, whitelist: true }),
@@ -24,8 +31,8 @@ const bootstrap = async () => {
 		.build();
 
 	const documentOptions: SwaggerDocumentOptions = {
-		operationIdFactory: (controllerKey: string, methodKey: string) =>
-			methodKey,
+		operationIdFactory: (controllerName: string, methodName: string) =>
+			methodName,
 	};
 
 	const documentFactory = () =>
@@ -34,7 +41,6 @@ const bootstrap = async () => {
 	const isDev = process.env.NODE_ENV === 'development';
 	const customOptions: SwaggerCustomOptions = { ui: isDev, raw: isDev };
 	SwaggerModule.setup('api', app, documentFactory, customOptions);
-
 	await app.listen(process.env.PORT ?? 5000);
 };
 

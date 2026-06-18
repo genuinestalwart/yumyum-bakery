@@ -1,14 +1,14 @@
 import {
-	CanActivate,
-	ExecutionContext,
+	type CanActivate,
+	type ExecutionContext,
 	ForbiddenException,
 	Injectable,
-	UnauthorizedException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
-import type { AuthRole } from '../types/auth-role.type';
+import type { Role } from '../types/roles.types';
+import { ERROR_MESSAGES } from '../constants/errors.constants';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -17,24 +17,16 @@ export class RolesGuard implements CanActivate {
 	canActivate(
 		ctx: ExecutionContext,
 	): boolean | Promise<boolean> | Observable<boolean> {
-		const requiredRoles = this.reflector.getAllAndOverride<AuthRole[]>(
+		const requiredRoles = this.reflector.getAllAndOverride<Role[]>(
 			'roles',
 			[ctx.getHandler(), ctx.getClass()],
 		);
 
 		const request: Request = ctx.switchToHttp().getRequest();
-		const payload = request.auth?.payload;
+		const user = request.user;
 
-		const role = payload?.[`${process.env.AUTH0_IDENTIFIER}/roles`]?.[0] as
-			| AuthRole
-			| undefined;
-
-		if (!role) {
-			throw new UnauthorizedException();
-		}
-
-		if (!requiredRoles.includes(role)) {
-			throw new ForbiddenException();
+		if (!user || !requiredRoles.includes(user.role)) {
+			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
 
 		return true;

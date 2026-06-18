@@ -211,7 +211,7 @@ enum OrderStatus {
 
     // will be set by restaurant
     COMPLETED // 1st if WALK_IN type | final status
-    REJECTED // 2nd
+    REJECTED // 2nd | final status
     ACCEPTED // 2nd
     PREPARING // 3rd
     READY // 4th
