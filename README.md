@@ -1,1 +1,1 @@
-# YumYum Bakery | Server
+# YumYum Bakery
