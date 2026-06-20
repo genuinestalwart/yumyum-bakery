@@ -1,7 +1,9 @@
+# Monorepo root level ignored folders and files
 dist/
 docs/
 node_modules/
 
+# Backend specific ignored folders and files
 backend/.env
 backend/build/
 backend/dist/

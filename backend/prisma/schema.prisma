@@ -205,11 +205,11 @@ enum OrderType {
 }
 
 enum OrderStatus {
-    // will be set by customer
+    // Will be set by customer
     PENDING // 1st
-    CANCELLED // can't be set to CANCELLED once the status is PREPARING or later | final status
+    CANCELLED // Can't be set to CANCELLED once the status is PREPARING or later | final status
 
-    // will be set by restaurant
+    // Will be set by restaurant
     COMPLETED // 1st if WALK_IN type | final status
     REJECTED // 2nd | final status
     ACCEPTED // 2nd
@@ -219,8 +219,8 @@ enum OrderStatus {
     IN_TRANSIT // 5th if DELIVERY type
     DELIVERED // 6th if DELIVERY type | final status
 
-    // special case scenario
-    FAILED // final status
+    // Special case scenario
+    FAILED // Final status
 }
 
 enum PaymentStatus {

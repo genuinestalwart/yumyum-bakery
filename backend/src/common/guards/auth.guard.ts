@@ -16,7 +16,7 @@ import { ERROR_MESSAGES } from '../constants/errors.constants';
 export class AuthGuard implements CanActivate {
 	private checkJWT = auth({
 		audience: AUTH0_IDENTIFIER,
-		issuerBaseURL: process.env.AUTH0_TENANT as string,
+		issuerBaseURL: `https://${process.env.AUTH0_DOMAIN as string}/`,
 	});
 
 	async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -34,6 +34,7 @@ export class AuthGuard implements CanActivate {
 				});
 			});
 		} catch (error) {
+			// If the token is invalid
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
@@ -43,9 +44,11 @@ export class AuthGuard implements CanActivate {
 		const id = payload?.sub as string | undefined;
 
 		if (!id || !roles || !roles.length) {
+			// If the access token doesn't contain user's id and role
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
+		// Set the extracted user id and role into the request object for convenience
 		request.user = { id, role: normalizeRoles(roles)[0] as Role };
 		return true;
 	}

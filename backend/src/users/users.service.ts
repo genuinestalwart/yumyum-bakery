@@ -57,9 +57,16 @@ export class UsersService {
 		dto: CreateUserDto,
 	): Promise<CreateUserResponseDto> {
 		if (currentUser.role === ROLES[dto.role]) {
+			// If MANAGER tries to create a new MANAGER
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
 
+		/*
+		1-a. Create a new user
+		1-b. Throw error if user creation fails
+		2-a. Assign the role mentioned in the dto
+		2-b. Throw error if role assignment fails and delete the newly created user
+		*/
 		try {
 			const newUser = await this.auth0Service.users.create({
 				app_metadata: { role: AUTH0_ROLE_PREFIX + dto.role },
@@ -101,6 +108,7 @@ export class UsersService {
 				error instanceof ManagementError &&
 				error.statusCode === HttpStatus.CONFLICT
 			) {
+				// If another existing user has the same email provided in the request
 				throw new ConflictException(ERROR_MESSAGES.CONFLICT_DUPLICATE);
 			}
 
@@ -111,6 +119,7 @@ export class UsersService {
 	}
 
 	async findManyUsers(dto: FindManyUsersDto): Promise<FullUserResponseDto[]> {
+		// Build the query based on the existence of the values
 		let query = `identities.connection:"${AUTH0_CONNECTION}"`;
 
 		if (dto.blocked !== undefined) {
@@ -181,10 +190,12 @@ export class UsersService {
 		const user = await this.findFullUser(id);
 
 		if (!([ROLES.MANAGER, ROLES.STAFF] as Role[]).includes(user.role)) {
+			// Only the role of a MANAGER or STAFF can be changed
 			throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
 		}
 
 		if (dto.role === user.role) {
+			// If the user already has the assignable role
 			return user;
 		}
 
@@ -193,6 +204,13 @@ export class UsersService {
 			[ROLES.STAFF]: process.env['AUTH0_ROLE_STAFF'] as string,
 		};
 
+		/*
+		1. Remove the old role
+		2-a. Assign the new role
+		2-b. Throw error if new role assignment fails and reassign the old role
+		3-a. Update 'app_metadata' with the new role
+		3-b. Throw error if updating 'app_metadata' fails, remove the new role, and reassign the old role
+		*/
 		const oldRoleId = roleIdMapper[user.role];
 		const newRoleId = roleIdMapper[dto.role];
 		await this.auth0Service.users.roles.delete(id, { roles: [oldRoleId] });
@@ -257,10 +275,12 @@ export class UsersService {
 		const user = await this.findFullUser(id);
 
 		if (dto.email === user.email) {
+			// If the provided email is same as the current email
 			return user;
 		}
 
 		try {
+			// Trigger email verification system of auth0 while updating the email field
 			const customer = await this.auth0Service.users.update(id, {
 				email: dto.email,
 				email_verified: false,
@@ -282,6 +302,7 @@ export class UsersService {
 		currentUser: RequestedBy,
 	): Promise<FullUserResponseDto> {
 		if (!dto.name && !dto.picture) {
+			// If the request body is fully empty
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
 
@@ -320,6 +341,7 @@ export class UsersService {
 		});
 
 		if (activeOrders) {
+			// If the CUSTOMER has any orders ongoing or unfinished
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 
@@ -373,10 +395,12 @@ export class UsersService {
 		const user = await this.findPartialUser(id);
 
 		if (!([ROLES.MANAGER, ROLES.STAFF] as Role[]).includes(user.role)) {
+			// Only a MANAGER or STAFF's account can be deactivated/reactivated
 			throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
 		}
 
 		if (currentUser.role === user.role) {
+			// User can't deactivate/reactivate another user with the same role
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
 
@@ -396,6 +420,7 @@ export class UsersService {
 		const user = await this.findPartialUser(id);
 
 		if (user.role !== ROLES.CUSTOMER) {
+			// Only a CUSTOMER can be banned/unbanned
 			throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
 		}
 

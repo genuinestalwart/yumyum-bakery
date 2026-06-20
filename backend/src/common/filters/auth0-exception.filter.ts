@@ -32,6 +32,7 @@ export class Auth0ExceptionFilter implements ExceptionFilter {
 			},
 		};
 
+		// Translate all auth0 errors into 500 except the errors mentioned in 'errorMapper'
 		const auth0Error =
 			errorMapper[`${exception.statusCode}`] ?? FALLBACK_ERROR;
 
