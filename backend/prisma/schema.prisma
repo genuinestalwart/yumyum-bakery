@@ -55,17 +55,12 @@ model MenuItem {
   price             Decimal  @db.Decimal(10, 2)
   updated_at        DateTime @updatedAt @db.Timestamp()
 
-  // Foreign keys
-  menu_category_id String @db.Uuid
-
   // Front relation fields
   cart_items         CartItem[]
+  menu_categories    MenuCategory[]
   ordered_items      OrderedItem[]
   reviews            Review[]
   subscription_items SubscriptionItem[]
-
-  // Back relation fields
-  menu_category MenuCategory @relation(fields: [menu_category_id], references: [id])
 }
 
 model Order {
