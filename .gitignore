@@ -1,10 +1,12 @@
 # Monorepo root level ignored folders and files
+.turbo/
 dist/
 docs/
 node_modules/
 
 # Backend specific ignored folders and files
 backend/.env
+backend/.turbo/
 backend/build/
 backend/data/
 backend/dist/
