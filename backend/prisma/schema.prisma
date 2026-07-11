@@ -1,230 +1,230 @@
 generator client {
-    provider     = "prisma-client"
-    output       = "../prisma/generated"
-    moduleFormat = "cjs"
+  provider     = "prisma-client"
+  output       = "../prisma/generated"
+  moduleFormat = "cjs"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 model CartItem {
-    // Immutable fields
-    id          String @id @default(uuid()) @db.Uuid
-    customer_id String @db.VarChar(250)
+  // Immutable fields
+  id          String @id @default(uuid()) @db.Uuid
+  customer_id String @db.VarChar(250)
 
-    // Mutable fields
-    quantity Int @default(1) @db.Integer
+  // Mutable fields
+  quantity Int @default(1) @db.Integer
 
-    // Foreign keys
-    menu_item_id String @db.Uuid
+  // Foreign keys
+  menu_item_id String @db.Uuid
 
-    // Back relation fields
-    menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
+  // Back relation fields
+  menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
 
-    // Constraints
-    @@unique([customer_id, menu_item_id])
+  // Constraints
+  @@unique([customer_id, menu_item_id])
 }
 
 model MenuCategory {
-    // Immutable fields
-    id String @id @default(uuid()) @db.Uuid
+  // Immutable fields
+  id String @id @default(uuid()) @db.Uuid
 
-    // Mutable fields
-    name String @unique @db.VarChar(20)
+  // Mutable fields
+  name String @unique @db.VarChar(20)
 
-    // Front relation fields
-    menu_items MenuItem[]
+  // Front relation fields
+  menu_items MenuItem[]
 }
 
 model MenuItem {
-    // Immutable fields
-    id           String    @id @default(uuid()) @db.Uuid
-    created_at   DateTime  @default(now()) @db.Timestamp()
-    published_at DateTime? @db.Timestamp() // initially null, will be set when `is_visible` is set to true for the first time
+  // Immutable fields
+  id           String    @id @default(uuid()) @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamp()
+  published_at DateTime? @db.Timestamp() // initially null, will be set when `is_visible` is set to true for the first time
 
-    // Mutable fields
-    description       String   @db.VarChar(500)
-    image             String   @db.Text
-    in_stock          Int      @default(0) @db.Integer
-    is_pre_order_only Boolean  @db.Boolean
-    is_visible        Boolean  @default(false) @db.Boolean
-    name              String   @db.VarChar(50)
-    order_count       Int      @default(0) @db.Integer
-    prep_time         Int      @db.Integer
-    price             Decimal  @db.Decimal(10, 2)
-    updated_at        DateTime @updatedAt @db.Timestamp()
+  // Mutable fields
+  description       String   @db.VarChar(500)
+  image             String   @db.Text
+  in_stock          Int      @default(0) @db.Integer
+  is_pre_order_only Boolean  @db.Boolean
+  is_visible        Boolean  @default(false) @db.Boolean
+  name              String   @db.VarChar(50)
+  order_count       Int      @default(0) @db.Integer
+  prep_time         Int      @db.Integer
+  price             Decimal  @db.Decimal(10, 2)
+  updated_at        DateTime @updatedAt @db.Timestamp()
 
-    // Foreign keys
-    menu_category_id String @db.Uuid
+  // Foreign keys
+  menu_category_id String @db.Uuid
 
-    // Front relation fields
-    cart_items         CartItem[]
-    ordered_items      OrderedItem[]
-    reviews            Review[]
-    subscription_items SubscriptionItem[]
+  // Front relation fields
+  cart_items         CartItem[]
+  ordered_items      OrderedItem[]
+  reviews            Review[]
+  subscription_items SubscriptionItem[]
 
-    // Back relation fields
-    menu_category MenuCategory @relation(fields: [menu_category_id], references: [id])
+  // Back relation fields
+  menu_category MenuCategory @relation(fields: [menu_category_id], references: [id])
 }
 
 model Order {
-    // Immutable fields
-    id          String    @id @default(uuid()) @db.Uuid
-    amount      Decimal   @db.Decimal(10, 2)
-    created_at  DateTime  @default(now()) @db.Timestamp()
-    customer_id String?   @db.VarChar(250) // will be set to null if customer deletes their account
-    rider_id    String    @db.VarChar(250)
-    order_type  OrderType
+  // Immutable fields
+  id          String    @id @default(uuid()) @db.Uuid
+  amount      Decimal   @db.Decimal(10, 2)
+  created_at  DateTime  @default(now()) @db.Timestamp()
+  customer_id String?   @db.VarChar(250) // will be set to null if customer deletes their account
+  rider_id    String    @db.VarChar(250)
+  order_type  OrderType
 
-    // If the type is PICKUP, the following fields will remain null
-    delivery_street      String? @db.VarChar(250)
-    delivery_city        String? @db.VarChar(100)
-    delivery_postal_code String? @db.VarChar(20)
-    delivery_latitude    Float?  @db.DoublePrecision
-    delivery_longitude   Float?  @db.DoublePrecision
+  // If the type is PICKUP, the following fields will remain null
+  delivery_street      String? @db.VarChar(250)
+  delivery_city        String? @db.VarChar(100)
+  delivery_postal_code String? @db.VarChar(20)
+  delivery_latitude    Float?  @db.DoublePrecision
+  delivery_longitude   Float?  @db.DoublePrecision
 
-    // Mutable fields
-    order_comment     String?       @db.VarChar(500) // can't modify after 7 days of order DELIVERED
-    order_rating      Int?          @db.Integer // can't modify after 7 days of order DELIVERED
-    order_status      OrderStatus
-    payment_status    PaymentStatus
-    updated_at        DateTime      @updatedAt @db.Timestamp()
-    verification_code String?       @db.VarChar(6)
+  // Mutable fields
+  order_comment     String?       @db.VarChar(500) // can't modify after 7 days of order DELIVERED
+  order_rating      Int?          @db.Integer // can't modify after 7 days of order DELIVERED
+  order_status      OrderStatus
+  payment_status    PaymentStatus
+  updated_at        DateTime      @updatedAt @db.Timestamp()
+  verification_code String?       @db.VarChar(6)
 
-    // Foreign keys
-    subscription_id String? @db.Uuid
+  // Foreign keys
+  subscription_id String? @db.Uuid
 
-    // Front relation fields
-    ordered_items OrderedItem[]
-    refunds       Refund[]
+  // Front relation fields
+  ordered_items OrderedItem[]
+  refunds       Refund[]
 
-    // Back relation fields
-    subscription Subscription? @relation(fields: [subscription_id], onDelete: SetNull, references: [id])
+  // Back relation fields
+  subscription Subscription? @relation(fields: [subscription_id], onDelete: SetNull, references: [id])
 }
 
 model OrderedItem {
-    // Immutable fields
-    id       String  @id @default(uuid()) @db.Uuid
-    price    Decimal @db.Decimal(10, 2)
-    quantity Int     @db.Integer
+  // Immutable fields
+  id       String  @id @default(uuid()) @db.Uuid
+  price    Decimal @db.Decimal(10, 2)
+  quantity Int     @db.Integer
 
-    // Foreign keys
-    menu_item_id String? @db.Uuid // will be set to null if the menu item is deleted
-    order_id     String  @db.Uuid
+  // Foreign keys
+  menu_item_id String? @db.Uuid // will be set to null if the menu item is deleted
+  order_id     String  @db.Uuid
 
-    // Front relation fields
-    refunds Refund[]
+  // Front relation fields
+  refunds Refund[]
 
-    // Back relation fields
-    menu_item MenuItem? @relation(fields: [menu_item_id], onDelete: SetNull, references: [id])
-    order     Order     @relation(fields: [order_id], references: [id])
+  // Back relation fields
+  menu_item MenuItem? @relation(fields: [menu_item_id], onDelete: SetNull, references: [id])
+  order     Order     @relation(fields: [order_id], references: [id])
 }
 
 model Refund {
-    // Immutable fields
-    id         String   @id @default(uuid()) @db.Uuid
-    amount     Decimal  @db.Decimal(10, 2)
-    created_at DateTime @default(now()) @db.Timestamp()
-    reason     String?  @db.VarChar(500)
+  // Immutable fields
+  id         String   @id @default(uuid()) @db.Uuid
+  amount     Decimal  @db.Decimal(10, 2)
+  created_at DateTime @default(now()) @db.Timestamp()
+  reason     String?  @db.VarChar(500)
 
-    // Foreign keys
-    order_id        String  @db.Uuid
-    ordered_item_id String? @db.Uuid
+  // Foreign keys
+  order_id        String  @db.Uuid
+  ordered_item_id String? @db.Uuid
 
-    // Back relation fields
-    order        Order        @relation(fields: [order_id], references: [id])
-    ordered_item OrderedItem? @relation(fields: [ordered_item_id], references: [id])
+  // Back relation fields
+  order        Order        @relation(fields: [order_id], references: [id])
+  ordered_item OrderedItem? @relation(fields: [ordered_item_id], references: [id])
 }
 
 model Review {
-    // Immutable fields
-    id          String   @id @default(uuid()) @db.Uuid
-    created_at  DateTime @default(now()) @db.Timestamp()
-    customer_id String   @db.VarChar(250)
+  // Immutable fields
+  id          String   @id @default(uuid()) @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamp()
+  customer_id String   @db.VarChar(250)
 
-    // Mutable fields
-    comment    String?  @db.VarChar(500)
-    rating     Int      @db.Integer
-    updated_at DateTime @updatedAt @db.Timestamp()
+  // Mutable fields
+  comment    String?  @db.VarChar(500)
+  rating     Int      @db.Integer
+  updated_at DateTime @updatedAt @db.Timestamp()
 
-    // Foreign keys
-    menu_item_id String @db.Uuid
+  // Foreign keys
+  menu_item_id String @db.Uuid
 
-    // Back relation fields
-    menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
+  // Back relation fields
+  menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
 
-    // Constraints
-    @@unique([customer_id, menu_item_id])
+  // Constraints
+  @@unique([customer_id, menu_item_id])
 }
 
 model Subscription {
-    // Immutable fields
-    id          String   @id @default(uuid()) @db.Uuid
-    created_at  DateTime @default(now()) @db.Timestamp()
-    customer_id String   @db.VarChar(250)
+  // Immutable fields
+  id          String   @id @default(uuid()) @db.Uuid
+  created_at  DateTime @default(now()) @db.Timestamp()
+  customer_id String   @db.VarChar(250)
 
-    // Mutable fields
-    is_active    Boolean  @default(true) @db.Boolean
-    onMondays    Boolean  @db.Boolean
-    onTuesdays   Boolean  @db.Boolean
-    onWednesdays Boolean  @db.Boolean
-    onThursdays  Boolean  @db.Boolean
-    onFridays    Boolean  @db.Boolean
-    onSaturdays  Boolean  @db.Boolean
-    onSundays    Boolean  @db.Boolean
-    updated_at   DateTime @updatedAt @db.Timestamp()
+  // Mutable fields
+  is_active    Boolean  @default(true) @db.Boolean
+  onMondays    Boolean  @db.Boolean
+  onTuesdays   Boolean  @db.Boolean
+  onWednesdays Boolean  @db.Boolean
+  onThursdays  Boolean  @db.Boolean
+  onFridays    Boolean  @db.Boolean
+  onSaturdays  Boolean  @db.Boolean
+  onSundays    Boolean  @db.Boolean
+  updated_at   DateTime @updatedAt @db.Timestamp()
 
-    // Front relation fields
-    orders             Order[]
-    subscription_items SubscriptionItem[]
+  // Front relation fields
+  orders             Order[]
+  subscription_items SubscriptionItem[]
 }
 
 model SubscriptionItem {
-    // Immutable fields
-    id       String @id @default(uuid()) @db.Uuid
-    quantity Int    @db.Integer
+  // Immutable fields
+  id       String @id @default(uuid()) @db.Uuid
+  quantity Int    @db.Integer
 
-    // Foreign keys
-    menu_item_id    String @db.Uuid
-    subscription_id String @db.Uuid
+  // Foreign keys
+  menu_item_id    String @db.Uuid
+  subscription_id String @db.Uuid
 
-    // Back relation fields
-    menu_item    MenuItem     @relation(fields: [menu_item_id], references: [id])
-    subscription Subscription @relation(fields: [subscription_id], onDelete: Cascade, references: [id])
+  // Back relation fields
+  menu_item    MenuItem     @relation(fields: [menu_item_id], references: [id])
+  subscription Subscription @relation(fields: [subscription_id], onDelete: Cascade, references: [id])
 
-    // Constraints
-    @@unique([subscription_id, menu_item_id])
+  // Constraints
+  @@unique([subscription_id, menu_item_id])
 }
 
 enum OrderType {
-    DELIVERY
-    PICKUP
-    WALK_IN
-    SUBSCRIPTION
+  DELIVERY
+  PICKUP
+  WALK_IN
+  SUBSCRIPTION
 }
 
 enum OrderStatus {
-    // Will be set by customer
-    PENDING // 1st
-    CANCELLED // Can't be set to CANCELLED once the status is PREPARING or later | final status
+  // Will be set by customer
+  PENDING // 1st
+  CANCELLED // Can't be set to CANCELLED once the status is PREPARING or later | final status
 
-    // Will be set by restaurant
-    COMPLETED // 1st if WALK_IN type | final status
-    REJECTED // 2nd | final status
-    ACCEPTED // 2nd
-    PREPARING // 3rd
-    READY // 4th
-    PICKED_UP // 5th if PICKUP type | final status
-    IN_TRANSIT // 5th if DELIVERY type
-    DELIVERED // 6th if DELIVERY type | final status
+  // Will be set by restaurant
+  COMPLETED // 1st if WALK_IN type | final status
+  REJECTED // 2nd | final status
+  ACCEPTED // 2nd
+  PREPARING // 3rd
+  READY // 4th
+  PICKED_UP // 5th if PICKUP type | final status
+  IN_TRANSIT // 5th if DELIVERY type
+  DELIVERED // 6th if DELIVERY type | final status
 
-    // Special case scenario
-    FAILED // Final status
+  // Special case scenario
+  FAILED // Final status
 }
 
 enum PaymentStatus {
-    FULLY_PAID
-    PARTIALLY_PAID
-    UNPAID
+  FULLY_PAID
+  PARTIALLY_PAID
+  UNPAID
 }

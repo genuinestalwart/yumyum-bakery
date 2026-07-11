@@ -1,0 +1,2 @@
+# Backend specific ignored folders and files
+backend/prisma/migrations/

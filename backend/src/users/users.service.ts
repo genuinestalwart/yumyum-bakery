@@ -426,23 +426,21 @@ export class UsersService {
 
 		try {
 			if (blocked) {
-				const customer = await this.prismaService.$transaction(
-					async (tx) => {
-						await this.purgeCustomerData(tx, id);
+				const customer = await this.prismaService.$transaction(async (tx) => {
+					await this.purgeCustomerData(tx, id);
 
-						await tx.order.updateMany({
-							data: { order_status: 'CANCELLED' },
-							where: {
-								customer_id: id,
-								order_status: {
-									notIn: this.finalOrderStatuses,
-								},
+					await tx.order.updateMany({
+						data: { order_status: 'CANCELLED' },
+						where: {
+							customer_id: id,
+							order_status: {
+								notIn: this.finalOrderStatuses,
 							},
-						});
+						},
+					});
 
-						return await this.updateBlockStatus(blocked, id);
-					},
-				);
+					return await this.updateBlockStatus(blocked, id);
+				});
 
 				return { ...this.normalizeUser(customer), role: user.role };
 			} else {

@@ -6,6 +6,7 @@ node_modules/
 # Backend specific ignored folders and files
 backend/.env
 backend/build/
+backend/data/
 backend/dist/
 backend/node_modules/
 backend/prisma/generated/

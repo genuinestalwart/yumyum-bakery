@@ -1,0 +1,8 @@
+{
+	"endOfLine": "lf",
+	"plugins": ["prettier-plugin-prisma"],
+	"singleQuote": true,
+	"tabWidth": 2,
+	"trailingComma": "all",
+	"useTabs": true
+}

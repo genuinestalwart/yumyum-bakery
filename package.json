@@ -1,0 +1,11 @@
+{
+	"scripts": {
+		"format": "prettier \"**/*.{ts,js,vue,json,prisma,md}\" --write"
+	},
+	"devDependencies": {
+		"eslint-config-prettier": "^10.1.8",
+		"eslint-plugin-prettier": "^5.5.6",
+		"prettier": "^3.9.5",
+		"prettier-plugin-prisma": "^5.0.0"
+	}
+}

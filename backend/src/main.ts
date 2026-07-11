@@ -16,19 +16,14 @@ const bootstrap = async () => {
 	app.enableCors();
 
 	// Register exception filters globally
-	app.useGlobalFilters(
-		new Auth0ExceptionFilter(),
-		new PrismaExceptionFilter(),
-	);
+	app.useGlobalFilters(new Auth0ExceptionFilter(), new PrismaExceptionFilter());
 
 	/*
 	Enable global validation for all incoming requests:
 		- 'whitelist: true' strips out any extra properties not defined in the DTOs
 		- 'transform: true' automatically converts raw properties into the desired types defined in the DTOs
 	*/
-	app.useGlobalPipes(
-		new ValidationPipe({ transform: true, whitelist: true }),
-	);
+	app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
 	// Swagger API Docs builder
 	const config = new DocumentBuilder()
