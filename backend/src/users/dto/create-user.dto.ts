@@ -5,20 +5,27 @@ import {
 	IsString,
 	MaxLength,
 } from 'class-validator';
-import { TrimString } from 'src/common/decorators/trim-string.decorator';
+import {
+	TrimOnly,
+	TrimToLowerCase,
+} from 'src/common/decorators/transform.decorators';
 import { ROLES, type Role } from 'src/common/types/roles.types';
 
 export class CreateUserDto {
+	@TrimToLowerCase()
+	@IsString()
 	@IsEmail()
+	@MaxLength(255)
 	email: string;
 
-	@IsNotEmpty()
+	@TrimOnly()
 	@IsString()
+	@IsNotEmpty()
 	@MaxLength(30)
-	@TrimString()
 	name: string;
 
-	@IsNotEmpty()
+	@TrimToLowerCase()
+	@IsString()
 	@IsIn([ROLES.MANAGER, ROLES.STAFF])
-	role: Extract<Role, 'MANAGER' | 'STAFF'>;
+	role: Extract<Role, 'manager' | 'staff'>;
 }

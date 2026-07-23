@@ -1,8 +1,10 @@
-import { IsIn, IsNotEmpty } from 'class-validator';
+import { IsIn, IsString } from 'class-validator';
+import { TrimToUpperCase } from 'src/common/decorators/transform.decorators';
 import { ROLES, type Role } from 'src/common/types/roles.types';
 
 export class UpdateUserRoleDto {
-	@IsNotEmpty()
+	@TrimToUpperCase()
+	@IsString()
 	@IsIn([ROLES.MANAGER, ROLES.STAFF])
-	role: Extract<Role, 'MANAGER' | 'STAFF'>;
+	role: Extract<Role, 'manager' | 'staff'>;
 }

@@ -5,6 +5,7 @@ import { Auth0Module } from './auth0/auth0.module';
 import { ConfigModule } from '@nestjs/config';
 import { PrismaModule } from './prisma/prisma.module';
 import { MenuCategoriesModule } from './menu-categories/menu-categories.module';
+import { MenuItemsModule } from './menu-items/menu-items.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -12,6 +13,7 @@ import { UsersModule } from './users/users.module';
 		Auth0Module,
 		ConfigModule.forRoot({ isGlobal: true }),
 		MenuCategoriesModule,
+		MenuItemsModule,
 		PrismaModule,
 		UsersModule,
 	],

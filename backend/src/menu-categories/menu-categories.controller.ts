@@ -55,6 +55,6 @@ export class MenuCategoriesController {
 	@Delete(':id')
 	@HasRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-		return this.menuCategoriesService.deleteMenuCategory(id);
+		await this.menuCategoriesService.deleteMenuCategory(id);
 	}
 }

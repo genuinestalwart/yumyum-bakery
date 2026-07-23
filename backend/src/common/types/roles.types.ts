@@ -1,9 +1,9 @@
 export const ROLES = {
-	ADMIN: 'ADMIN',
-	CUSTOMER: 'CUSTOMER',
-	MANAGER: 'MANAGER',
-	STAFF: 'STAFF',
+	ADMIN: 'admin',
+	CUSTOMER: 'customer',
+	MANAGER: 'manager',
+	STAFF: 'staff',
 } as const;
 
-export type Role = keyof typeof ROLES;
+export type Role = (typeof ROLES)[keyof typeof ROLES];
 export type RequestedBy = { id: string; role: Role };

@@ -9,11 +9,15 @@ import {
 import { MenuCategoryResponseDto } from './dto/menu-category-response.dto';
 import { ROLES } from 'src/common/types/roles.types';
 
-export const ApiCreateMenuCategoryResource = () =>
-	ApiCreateResource(
-		`${ROLES.ADMIN} or ${ROLES.MANAGER}`,
-		MenuCategoryResponseDto,
+export const ApiCreateMenuCategoryResource = () => {
+	return applyDecorators(
+		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_DUPLICATE }),
+		ApiCreateResource(
+			`${ROLES.ADMIN} or ${ROLES.MANAGER}`,
+			MenuCategoryResponseDto,
+		),
 	);
+};
 
 export const ApiFindAllMenuCategoriesResource = () =>
 	ApiOkResponse({ type: [MenuCategoryResponseDto] });

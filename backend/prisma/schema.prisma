@@ -10,20 +10,21 @@ datasource db {
 
 model CartItem {
   // Immutable fields
-  id          String @id @default(uuid()) @db.Uuid
-  customer_id String @db.VarChar(250)
+  id         String @id @default(uuid()) @db.Uuid
+  customerId String @map("customer_id") @db.VarChar(250)
 
   // Mutable fields
   quantity Int @default(1) @db.Integer
 
   // Foreign keys
-  menu_item_id String @db.Uuid
+  menuItemId String @map("menu_item_id") @db.Uuid
 
   // Back relation fields
-  menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
+  menuItem MenuItem @relation(fields: [menuItemId], onDelete: Cascade, references: [id])
 
   // Constraints
-  @@unique([customer_id, menu_item_id])
+  @@unique([customerId, menuItemId])
+  @@map("cart_items")
 }
 
 model MenuCategory {
@@ -34,68 +35,78 @@ model MenuCategory {
   name String @unique @db.VarChar(20)
 
   // Front relation fields
-  menu_items MenuItem[]
+  menuItems MenuItem[]
+
+  // Constraints
+  @@map("menu_categories")
 }
 
 model MenuItem {
   // Immutable fields
-  id           String    @id @default(uuid()) @db.Uuid
-  created_at   DateTime  @default(now()) @db.Timestamp()
-  published_at DateTime? @db.Timestamp() // initially null, will be set when `is_visible` is set to true for the first time
+  id          String    @id @default(uuid()) @db.Uuid
+  archivedAt  DateTime? @map("archived_at") @db.Timestamp() // initially null, can be set if at least 1 orderedItem is connected to this menuItem
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  publishedAt DateTime? @map("published_at") @db.Timestamp() // initially null, will be set when `isVisible` is set to true for the first time
 
   // Mutable fields
-  description       String   @db.VarChar(500)
-  image             String   @db.Text
-  in_stock          Int      @default(0) @db.Integer
-  is_pre_order_only Boolean  @db.Boolean
-  is_visible        Boolean  @default(false) @db.Boolean
-  name              String   @db.VarChar(50)
-  order_count       Int      @default(0) @db.Integer
-  prep_time         Int      @db.Integer
-  price             Decimal  @db.Decimal(10, 2)
-  updated_at        DateTime @updatedAt @db.Timestamp()
+  description    String   @db.VarChar(500)
+  image          String   @db.VarChar(2048)
+  inStock        Int      @default(0) @map("in_stock") @db.Integer
+  isPreOrderOnly Boolean  @map("is_pre_order_only") @db.Boolean
+  isVisible      Boolean  @default(false) @map("is_visible") @db.Boolean
+  name           String   @db.VarChar(50)
+  orderCount     Int      @default(0) @map("order_count") @db.Integer // automatically updated
+  prepTime       Int      @map("prep_time") @db.Integer
+  price          Decimal  @db.Decimal(10, 2)
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
   // Front relation fields
-  cart_items         CartItem[]
-  menu_categories    MenuCategory[]
-  ordered_items      OrderedItem[]
-  reviews            Review[]
-  subscription_items SubscriptionItem[]
+  cartItems         CartItem[]
+  menuCategories    MenuCategory[]
+  orderedItems      OrderedItem[]
+  reviews           Review[]
+  subscriptionItems SubscriptionItem[]
+
+  // Constraints
+  @@map("menu_items")
 }
 
 model Order {
   // Immutable fields
-  id          String    @id @default(uuid()) @db.Uuid
-  amount      Decimal   @db.Decimal(10, 2)
-  created_at  DateTime  @default(now()) @db.Timestamp()
-  customer_id String?   @db.VarChar(250) // will be set to null if customer deletes their account
-  rider_id    String    @db.VarChar(250)
-  order_type  OrderType
+  id         String    @id @default(uuid()) @db.Uuid
+  amount     Decimal   @db.Decimal(10, 2)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp()
+  customerId String?   @map("customer_id") @db.VarChar(250) // will be set to null if customer deletes their account
+  riderId    String    @map("rider_id") @db.VarChar(250)
+  orderType  OrderType @map("order_type")
 
   // If the type is PICKUP, the following fields will remain null
-  delivery_street      String? @db.VarChar(250)
-  delivery_city        String? @db.VarChar(100)
-  delivery_postal_code String? @db.VarChar(20)
-  delivery_latitude    Float?  @db.DoublePrecision
-  delivery_longitude   Float?  @db.DoublePrecision
+  deliveryStreet     String? @map("delivery_street") @db.VarChar(250)
+  deliveryCity       String? @map("delivery_city") @db.VarChar(100)
+  deliveryPostalCode String? @map("delivery_postal_code") @db.VarChar(20)
+  deliveryLatitude   Float?  @map("delivery_latitude") @db.DoublePrecision
+  deliveryLongitude  Float?  @map("delivery_longitude") @db.DoublePrecision
 
   // Mutable fields
-  order_comment     String?       @db.VarChar(500) // can't modify after 7 days of order DELIVERED
-  order_rating      Int?          @db.Integer // can't modify after 7 days of order DELIVERED
-  order_status      OrderStatus
-  payment_status    PaymentStatus
-  updated_at        DateTime      @updatedAt @db.Timestamp()
-  verification_code String?       @db.VarChar(6)
+  orderComment     String?       @map("order_comment") @db.VarChar(500) // can't modify after 7 days of order DELIVERED
+  orderRating      Int?          @map("order_rating") @db.Integer // can't modify after 7 days of order DELIVERED
+  orderStatus      OrderStatus   @map("order_status")
+  paymentStatus    PaymentStatus @map("payment_status")
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamp()
+  verificationCode String?       @map("verification_code") @db.VarChar(6) // automatically updated
 
   // Foreign keys
-  subscription_id String? @db.Uuid
+  subscriptionId String? @map("subscription_id") @db.Uuid
 
   // Front relation fields
-  ordered_items OrderedItem[]
-  refunds       Refund[]
+  orderedItems OrderedItem[]
+  refunds      Refund[]
 
   // Back relation fields
-  subscription Subscription? @relation(fields: [subscription_id], onDelete: SetNull, references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], onDelete: SetNull, references: [id])
+
+  // Constraints
+  @@map("orders")
 }
 
 model OrderedItem {
@@ -105,74 +116,85 @@ model OrderedItem {
   quantity Int     @db.Integer
 
   // Foreign keys
-  menu_item_id String? @db.Uuid // will be set to null if the menu item is deleted
-  order_id     String  @db.Uuid
+  menuItemId String @map("menu_item_id") @db.Uuid
+  orderId    String @map("orderId") @db.Uuid
 
   // Front relation fields
   refunds Refund[]
 
   // Back relation fields
-  menu_item MenuItem? @relation(fields: [menu_item_id], onDelete: SetNull, references: [id])
-  order     Order     @relation(fields: [order_id], references: [id])
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  order    Order    @relation(fields: [orderId], references: [id])
+
+  // Constraints
+  @@unique([orderId, menuItemId])
+  @@map("ordered_items")
 }
 
 model Refund {
   // Immutable fields
-  id         String   @id @default(uuid()) @db.Uuid
-  amount     Decimal  @db.Decimal(10, 2)
-  created_at DateTime @default(now()) @db.Timestamp()
-  reason     String?  @db.VarChar(500)
+  id        String   @id @default(uuid()) @db.Uuid
+  amount    Decimal  @db.Decimal(10, 2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp()
+  reason    String?  @db.VarChar(500)
 
   // Foreign keys
-  order_id        String  @db.Uuid
-  ordered_item_id String? @db.Uuid
+  orderId       String  @map("order_id") @db.Uuid
+  orderedItemId String? @map("ordered_item_id") @db.Uuid
 
   // Back relation fields
-  order        Order        @relation(fields: [order_id], references: [id])
-  ordered_item OrderedItem? @relation(fields: [ordered_item_id], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+  orderedItem OrderedItem? @relation(fields: [orderedItemId], references: [id])
+
+  // Constraints
+  @@map("refunds")
 }
 
 model Review {
   // Immutable fields
-  id          String   @id @default(uuid()) @db.Uuid
-  created_at  DateTime @default(now()) @db.Timestamp()
-  customer_id String   @db.VarChar(250)
+  id         String   @id @default(uuid()) @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp()
+  customerId String   @map("customer_id") @db.VarChar(250)
 
   // Mutable fields
-  comment    String?  @db.VarChar(500)
-  rating     Int      @db.Integer
-  updated_at DateTime @updatedAt @db.Timestamp()
+  comment   String?  @db.VarChar(500)
+  rating    Int      @db.Integer
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
   // Foreign keys
-  menu_item_id String @db.Uuid
+  menuItemId String @map("menu_item_id") @db.Uuid
 
   // Back relation fields
-  menu_item MenuItem @relation(fields: [menu_item_id], onDelete: Cascade, references: [id])
+  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
 
   // Constraints
-  @@unique([customer_id, menu_item_id])
+  @@unique([customerId, menuItemId])
+  @@map("reviews")
 }
 
 model Subscription {
   // Immutable fields
-  id          String   @id @default(uuid()) @db.Uuid
-  created_at  DateTime @default(now()) @db.Timestamp()
-  customer_id String   @db.VarChar(250)
+  id         String   @id @default(uuid()) @db.Uuid
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp()
+  customerId String   @map("customer_id") @db.VarChar(250)
 
   // Mutable fields
-  is_active    Boolean  @default(true) @db.Boolean
-  onMondays    Boolean  @db.Boolean
-  onTuesdays   Boolean  @db.Boolean
-  onWednesdays Boolean  @db.Boolean
-  onThursdays  Boolean  @db.Boolean
-  onFridays    Boolean  @db.Boolean
-  onSaturdays  Boolean  @db.Boolean
-  onSundays    Boolean  @db.Boolean
-  updated_at   DateTime @updatedAt @db.Timestamp()
+  isActive     Boolean  @default(true) @map("is_active") @db.Boolean
+  onMondays    Boolean  @map("on_mondays") @db.Boolean
+  onTuesdays   Boolean  @map("on_tuesdays") @db.Boolean
+  onWednesdays Boolean  @map("on_wednesdays") @db.Boolean
+  onThursdays  Boolean  @map("on_thursdays") @db.Boolean
+  onFridays    Boolean  @map("on_fridays") @db.Boolean
+  onSaturdays  Boolean  @map("on_saturdays") @db.Boolean
+  onSundays    Boolean  @map("on_sundays") @db.Boolean
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
   // Front relation fields
-  orders             Order[]
-  subscription_items SubscriptionItem[]
+  orders            Order[]
+  subscriptionItems SubscriptionItem[]
+
+  // Constraints
+  @@map("subscriptions")
 }
 
 model SubscriptionItem {
@@ -181,45 +203,46 @@ model SubscriptionItem {
   quantity Int    @db.Integer
 
   // Foreign keys
-  menu_item_id    String @db.Uuid
-  subscription_id String @db.Uuid
+  menuItemId     String @map("menu_item_id") @db.Uuid
+  subscriptionId String @map("subscription_id") @db.Uuid
 
   // Back relation fields
-  menu_item    MenuItem     @relation(fields: [menu_item_id], references: [id])
-  subscription Subscription @relation(fields: [subscription_id], onDelete: Cascade, references: [id])
+  menuItem     MenuItem     @relation(fields: [menuItemId], onDelete: Cascade, references: [id])
+  subscription Subscription @relation(fields: [subscriptionId], onDelete: Cascade, references: [id])
 
   // Constraints
-  @@unique([subscription_id, menu_item_id])
+  @@unique([subscriptionId, menuItemId])
+  @@map("subscription_items")
 }
 
 enum OrderType {
-  DELIVERY
-  PICKUP
-  WALK_IN
-  SUBSCRIPTION
+  DELIVERY     @map("delivery")
+  PICKUP       @map("pickup")
+  WALK_IN      @map("walk_in")
+  SUBSCRIPTION @map("subscription")
 }
 
 enum OrderStatus {
   // Will be set by customer
-  PENDING // 1st
-  CANCELLED // Can't be set to CANCELLED once the status is PREPARING or later | final status
+  PENDING   @map("pending") // 1st
+  CANCELLED @map("cancelled") // Can't be set to CANCELLED once the status is PREPARING or later | final status
 
   // Will be set by restaurant
-  COMPLETED // 1st if WALK_IN type | final status
-  REJECTED // 2nd | final status
-  ACCEPTED // 2nd
-  PREPARING // 3rd
-  READY // 4th
-  PICKED_UP // 5th if PICKUP type | final status
-  IN_TRANSIT // 5th if DELIVERY type
-  DELIVERED // 6th if DELIVERY type | final status
+  COMPLETED  @map("completed") // 1st if WALK_IN type | final status
+  REJECTED   @map("rejected") // 2nd | final status
+  ACCEPTED   @map("accepted") // 2nd
+  PREPARING  @map("preparing") // 3rd
+  READY      @map("ready") // 4th
+  PICKED_UP  @map("picked_up") // 5th if PICKUP type | final status
+  IN_TRANSIT @map("in_transit") // 5th if DELIVERY type
+  DELIVERED  @map("delivered") // 6th if DELIVERY type | final status
 
   // Special case scenario
-  FAILED // Final status
+  FAILED @map("failed") // Final status
 }
 
 enum PaymentStatus {
-  FULLY_PAID
-  PARTIALLY_PAID
-  UNPAID
+  FULLY_PAID     @map("fully_paid")
+  PARTIALLY_PAID @map("partially_paid")
+  UNPAID         @map("unpaid")
 }

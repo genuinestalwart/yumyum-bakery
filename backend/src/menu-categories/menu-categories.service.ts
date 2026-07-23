@@ -36,10 +36,11 @@ export class MenuCategoriesService {
 
 	async deleteMenuCategory(id: string): Promise<void> {
 		const categoryIsInUse = await this.prismaService.menuItem.count({
-			where: { menu_categories: { some: { id } } },
+			where: { menuCategories: { some: { id } } },
 		});
 
 		if (categoryIsInUse) {
+			// If any menu item belongs to this category
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 

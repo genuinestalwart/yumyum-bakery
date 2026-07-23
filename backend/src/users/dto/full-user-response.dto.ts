@@ -13,18 +13,18 @@ export class FullUserResponseDto extends PartialUserResponseDto {
 	blocked: boolean;
 
 	@IsDate()
-	created_at: string;
+	createdAt: string;
 
 	@IsEmail()
 	email: string;
 
 	@IsBoolean()
-	email_verified: boolean;
+	emailVerified: boolean;
 
 	@IsArray()
 	@ArrayNotEmpty()
 	identities: Auth0.UserIdentity[];
 
 	@IsDate()
-	updated_at: string;
+	updatedAt: string;
 }

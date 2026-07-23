@@ -5,18 +5,20 @@ import {
 	IsUrl,
 	MaxLength,
 } from 'class-validator';
-import { TrimString } from 'src/common/decorators/trim-string.decorator';
+import { TrimOnly } from 'src/common/decorators/transform.decorators';
 
 export class UpdateUserProfileDto {
-	@IsNotEmpty()
+	@TrimOnly()
 	@IsOptional()
 	@IsString()
+	@IsNotEmpty()
 	@MaxLength(30)
-	@TrimString()
 	name?: string;
 
+	@TrimOnly()
 	@IsOptional()
+	@IsString()
 	@IsUrl()
-	@TrimString()
+	@MaxLength(2048)
 	picture?: string;
 }

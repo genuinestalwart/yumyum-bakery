@@ -18,7 +18,7 @@ import { SORT_BY } from './users.types';
 import { AUTH0_CONNECTION, AUTH0_ROLE_PREFIX } from 'src/auth0/auth0.constants';
 import Auth0 from 'src/auth0/auth0.types';
 import { RequestedBy, Role, ROLES } from 'src/common/types/roles.types';
-import { normalizeRoles } from 'src/common/utils/normalize-roles.utils';
+import { normalizeRoles } from 'src/common/utils/normalize-roles.util';
 import { CreateUserResponseDto } from './dto/create-user-response.dto';
 import { FullUserResponseDto } from './dto/full-user-response.dto';
 import { PartialUserResponseDto } from './dto/partial-user-response.dto';
@@ -144,7 +144,7 @@ export class UsersService {
 				primary_order: true,
 				q: query,
 				search_engine: 'v3',
-				sort: `${dto.sort_by ?? SORT_BY.NAME}:${dto.sort_order === 'desc' ? -1 : 1}`,
+				sort: `${dto.sortBy ?? SORT_BY.NAME}:${dto.sortOrder === 'desc' ? -1 : 1}`,
 			});
 
 			return users.map((user) => {
@@ -199,7 +199,7 @@ export class UsersService {
 			return user;
 		}
 
-		const roleIdMapper: Record<'STAFF' | 'MANAGER', string> = {
+		const roleIdMapper: Record<'manager' | 'staff', string> = {
 			[ROLES.MANAGER]: process.env['AUTH0_ROLE_MANAGER'] as string,
 			[ROLES.STAFF]: process.env['AUTH0_ROLE_STAFF'] as string,
 		};
@@ -216,9 +216,7 @@ export class UsersService {
 		await this.auth0Service.users.roles.delete(id, { roles: [oldRoleId] });
 
 		try {
-			await this.auth0Service.users.roles.assign(id, {
-				roles: [newRoleId],
-			});
+			await this.auth0Service.users.roles.assign(id, { roles: [newRoleId] });
 
 			try {
 				await this.auth0Service.users.update(id, {
@@ -250,9 +248,7 @@ export class UsersService {
 			);
 
 			try {
-				await this.auth0Service.users.roles.assign(id, {
-					roles: [oldRoleId],
-				});
+				await this.auth0Service.users.roles.assign(id, { roles: [oldRoleId] });
 			} catch (undoRoleRemoveError) {
 				this.logger.error(
 					`Failed to undo role removal of user${id}`,
@@ -301,7 +297,7 @@ export class UsersService {
 		dto: UpdateUserProfileDto,
 		currentUser: RequestedBy,
 	): Promise<FullUserResponseDto> {
-		if (!dto.name && !dto.picture) {
+		if (!Object.keys(dto).length) {
 			// If the request body is fully empty
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
@@ -335,8 +331,8 @@ export class UsersService {
 	async deleteCustomer(id: string): Promise<void> {
 		const activeOrders = await this.prismaService.order.count({
 			where: {
-				customer_id: id,
-				order_status: { notIn: this.finalOrderStatuses },
+				customerId: id,
+				orderStatus: { notIn: this.finalOrderStatuses },
 			},
 		});
 
@@ -349,8 +345,8 @@ export class UsersService {
 			await this.purgeCustomerData(tx, id);
 
 			await tx.order.updateMany({
-				data: { customer_id: null },
-				where: { customer_id: id },
+				data: { customerId: null },
+				where: { customerId: id },
 			});
 
 			await this.auth0Service.users.delete(id);
@@ -365,21 +361,21 @@ export class UsersService {
 	private normalizeUser(user: Auth0.UserResponseSchema) {
 		return {
 			blocked: user.blocked as boolean,
-			created_at: user.created_at as string,
+			createdAt: user.created_at as string,
 			email: user.email as string,
-			email_verified: user.email_verified as boolean,
+			emailVerified: user.email_verified as boolean,
 			id: user.user_id as string,
 			identities: user.identities as Auth0.UserIdentity[],
 			name: user.name as string,
 			picture: user.picture as string,
-			updated_at: user.updated_at as string,
+			updatedAt: user.updated_at as string,
 		};
 	}
 
 	private async purgeCustomerData(tx: Prisma.TransactionClient, id: string) {
-		await tx.cartItem.deleteMany({ where: { customer_id: id } });
-		await tx.review.deleteMany({ where: { customer_id: id } });
-		await tx.subscription.deleteMany({ where: { customer_id: id } });
+		await tx.cartItem.deleteMany({ where: { customerId: id } });
+		await tx.review.deleteMany({ where: { customerId: id } });
+		await tx.subscription.deleteMany({ where: { customerId: id } });
 	}
 
 	private async updateBlockStatus(blocked: boolean, id: string) {
@@ -430,12 +426,10 @@ export class UsersService {
 					await this.purgeCustomerData(tx, id);
 
 					await tx.order.updateMany({
-						data: { order_status: 'CANCELLED' },
+						data: { orderStatus: 'CANCELLED' },
 						where: {
-							customer_id: id,
-							order_status: {
-								notIn: this.finalOrderStatuses,
-							},
+							customerId: id,
+							orderStatus: { notIn: this.finalOrderStatuses },
 						},
 					});
 

@@ -24,11 +24,15 @@ const ApiUserOwnedResource = () => {
 	);
 };
 
-export const ApiCreateUserResource = () =>
-	ApiCreateResource(
-		`${ROLES.ADMIN} or ${ROLES.MANAGER}`,
-		CreateUserResponseDto,
+export const ApiCreateUserResource = () => {
+	return applyDecorators(
+		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_DUPLICATE }),
+		ApiCreateResource(
+			`${ROLES.ADMIN} or ${ROLES.MANAGER}`,
+			CreateUserResponseDto,
+		),
 	);
+};
 
 export const ApiFindManyUsersResource = () => {
 	return applyDecorators(

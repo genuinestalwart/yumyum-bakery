@@ -10,37 +10,51 @@ import {
 import { ROLES, type Role } from 'src/common/types/roles.types';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import { SORT_BY, type SortBy } from '../users.types';
+import {
+	StringToBoolean,
+	TrimOnly,
+	TrimToLowerCase,
+	TrimToUpperCase,
+} from 'src/common/decorators/transform.decorators';
 
 export class FindManyUsersDto {
-	@IsBoolean()
+	@StringToBoolean()
 	@IsOptional()
+	@IsBoolean()
 	blocked?: boolean;
 
-	@IsInt()
-	@IsOptional()
-	@Min(1)
 	@Type(() => Number)
+	@IsOptional()
+	@IsInt()
+	@Min(1)
 	limit?: number = 20;
 
-	@IsInt()
-	@IsOptional()
-	@Min(1)
 	@Type(() => Number)
+	@IsOptional()
+	@IsInt()
+	@Min(1)
 	page?: number = 1;
 
-	@IsIn(Object.values(ROLES))
+	@TrimToUpperCase()
 	@IsOptional()
+	@IsString()
+	@IsIn(Object.values(ROLES))
 	role?: Role;
 
+	@TrimOnly()
 	@IsOptional()
 	@IsString()
 	search?: string;
 
+	@TrimToLowerCase()
+	@IsOptional()
+	@IsString()
 	@IsIn(Object.values(SORT_BY))
-	@IsOptional()
-	sort_by?: SortBy = SORT_BY.NAME;
+	sortBy?: SortBy = SORT_BY.NAME;
 
-	@IsIn(Object.values(SORT_ORDER))
+	@TrimToLowerCase()
 	@IsOptional()
-	sort_order?: SortOrder = SORT_ORDER.ASC;
+	@IsString()
+	@IsIn(Object.values(SORT_ORDER))
+	sortOrder?: SortOrder = SORT_ORDER.ASC;
 }

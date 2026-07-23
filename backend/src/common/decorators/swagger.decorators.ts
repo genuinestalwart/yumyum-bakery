@@ -1,7 +1,6 @@
 import { applyDecorators, HttpCode, HttpStatus, Type } from '@nestjs/common';
 import {
 	ApiBadRequestResponse,
-	ApiConflictResponse,
 	ApiCreatedResponse,
 	ApiForbiddenResponse,
 	ApiInternalServerErrorResponse,
@@ -37,7 +36,6 @@ export const ApiOkAndNotFound = (type: Type<unknown>) => {
 
 export const ApiCreateResource = (role: string, type: Type<unknown>) => {
 	return applyDecorators(
-		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_DUPLICATE }),
 		ApiCreatedResponse({ description: `must have ${role} role.`, type }),
 		ApiForbiddenAndUnauthorized(),
 	);

@@ -1,13 +1,12 @@
 import {
 	type CanActivate,
 	type ExecutionContext,
-	HttpStatus,
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { auth } from 'express-oauth2-jwt-bearer';
-import { normalizeRoles } from '../utils/normalize-roles.utils';
+import { normalizeRoles } from '../utils/normalize-roles.util';
 import { Role } from '../types/roles.types';
 import { AUTH0_IDENTIFIER } from '../../auth0/auth0.constants';
 import { ERROR_MESSAGES } from '../constants/errors.constants';

@@ -7,5 +7,5 @@ export class CreateUserResponseDto extends OmitType(FullUserResponseDto, [
 	'role',
 ] as const) {
 	@IsIn([ROLES.MANAGER, ROLES.STAFF])
-	role: Extract<Role, 'MANAGER' | 'STAFF'>;
+	role: Extract<Role, 'manager' | 'staff'>;
 }
