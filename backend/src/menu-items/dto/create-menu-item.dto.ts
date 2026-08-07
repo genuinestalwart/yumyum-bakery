@@ -7,22 +7,17 @@ import {
 	IsNumber,
 	IsString,
 	IsUrl,
+	IsUUID,
 	Max,
 	MaxLength,
 	Min,
 } from 'class-validator';
-import {
-	TrimOnly,
-	TrimToCategory,
-} from 'src/common/decorators/transform.decorators';
+import { TrimOnly } from 'src/common/decorators/transform.decorators';
 
 export class CreateMenuItemDto {
-	@TrimToCategory()
 	@IsArray()
 	@ArrayNotEmpty()
-	@IsString({ each: true })
-	@IsNotEmpty({ each: true })
-	@MaxLength(20, { each: true })
+	@IsUUID(4, { each: true })
 	categories: string[];
 
 	@TrimOnly()
@@ -48,7 +43,7 @@ export class CreateMenuItemDto {
 
 	@IsInt()
 	@Max(1440)
-	@Min(0)
+	@Min(5)
 	prepTime: number;
 
 	@IsNumber({ maxDecimalPlaces: 2 })

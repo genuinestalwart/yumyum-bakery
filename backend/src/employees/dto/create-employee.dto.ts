@@ -9,9 +9,11 @@ import {
 	TrimOnly,
 	TrimToLowerCase,
 } from 'src/common/decorators/transform.decorators';
-import { ROLES, type Role } from 'src/common/types/roles.types';
+import { ROLES } from 'src/common/types/roles.types';
+const ASSIGNABLE_ROLES = [ROLES.MANAGER, ROLES.STAFF] as const;
+type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
 
-export class CreateUserDto {
+export class CreateEmployeeDto {
 	@TrimToLowerCase()
 	@IsString()
 	@IsEmail()
@@ -26,6 +28,6 @@ export class CreateUserDto {
 
 	@TrimToLowerCase()
 	@IsString()
-	@IsIn([ROLES.MANAGER, ROLES.STAFF])
-	role: Extract<Role, 'manager' | 'staff'>;
+	@IsIn(ASSIGNABLE_ROLES)
+	role: AssignableRole;
 }

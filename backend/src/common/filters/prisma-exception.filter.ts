@@ -48,7 +48,6 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 			},
 		};
 
-		// Translate all prisma errors into 500 except the errors mentioned in 'errorMapper'
 		const prismaError = errorMapper[exception.code] ?? FALLBACK_ERROR;
 
 		if (prismaError.statusCode === FALLBACK_ERROR.statusCode) {

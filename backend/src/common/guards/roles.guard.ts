@@ -9,10 +9,18 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import type { Role } from '../types/roles.types';
 import { ERROR_MESSAGES } from '../constants/errors.constants';
+import { RequireRoles } from '../decorators/require-roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
 	constructor(private reflector: Reflector) {}
+
+	/**
+	 * Ensures that the requester has one of the required roles.
+	 *
+	 * @see {@link RequireRoles} Decorator required on route handlers to set `roles` metadata.
+	 * @throws {ForbiddenException} If the requester doesn't have any of the required roles.
+	 */
 
 	canActivate(
 		ctx: ExecutionContext,
@@ -26,7 +34,6 @@ export class RolesGuard implements CanActivate {
 		const user = request.user;
 
 		if (!user || !requiredRoles.includes(user.role)) {
-			// If the user in the request object doesn't contain any of the required roles
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
 

@@ -1,9 +1,14 @@
-import { IsString } from 'class-validator';
+import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
+import { REGEX_KEBAB_CASE } from 'src/common/constants/regex.constants';
 
 export class MenuCategoryResponseDto {
-	@IsString()
+	@ApiResponseProperty({ format: 'uuid' })
 	id: string;
 
-	@IsString()
+	@ApiProperty({
+		example: 'kebab-case',
+		pattern: REGEX_KEBAB_CASE,
+		type: 'string',
+	})
 	name: string;
 }

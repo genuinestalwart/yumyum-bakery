@@ -10,51 +10,59 @@ import {
 } from '@nestjs/common';
 import { MenuCategoriesService } from './menu-categories.service';
 import { MenuCategoryDto } from './dto/menu-category.dto';
-import { HasRoles } from 'src/common/decorators/has-roles.decorator';
+import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
 import { ROLES } from 'src/common/types/roles.types';
 import { MenuCategoryResponseDto } from './dto/menu-category-response.dto';
-import { ApiGlobalErrors } from 'src/common/decorators/swagger.decorators';
+import {
+	ApiDeleteAndConflict,
+	ApiGlobalErrors,
+} from 'src/common/decorators/swagger.decorators';
 import {
 	ApiCreateMenuCategoryResource,
-	ApiDeleteMenuCategoryResource,
-	ApiFindAllMenuCategoriesResource,
+	ApiFindPublicManyMenuCategoriesResource,
 	ApiUpdateMenuCategoryResource,
 } from './menu-categories.decorators';
+import { ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiGlobalErrors()
+@ApiTags('Menu Categories')
 @Controller('menu/categories')
 export class MenuCategoriesController {
 	constructor(private readonly menuCategoriesService: MenuCategoriesService) {}
 
 	@ApiCreateMenuCategoryResource()
-	@HasRoles(ROLES.ADMIN, ROLES.MANAGER)
+	@ApiOperation({ summary: 'Create a new menu category' })
 	@Post()
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async create(
 		@Body() body: MenuCategoryDto,
 	): Promise<MenuCategoryResponseDto> {
-		return this.menuCategoriesService.createMenuCategory(body);
+		return this.menuCategoriesService.create(body);
 	}
 
-	@ApiFindAllMenuCategoriesResource()
+	@ApiFindPublicManyMenuCategoriesResource()
+	@ApiOperation({ summary: 'Find all menu categories' })
 	@Get()
-	async findAll(): Promise<MenuCategoryResponseDto[]> {
-		return this.menuCategoriesService.findAllMenuCategories();
+	async findPublicMany(): Promise<MenuCategoryResponseDto[]> {
+		return this.menuCategoriesService.findPublicMany();
 	}
 
+	@ApiOperation({ summary: 'Update a menu category' })
 	@ApiUpdateMenuCategoryResource()
-	@HasRoles(ROLES.ADMIN, ROLES.MANAGER)
 	@Patch(':id')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async update(
 		@Body() body: MenuCategoryDto,
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<MenuCategoryResponseDto> {
-		return this.menuCategoriesService.updateMenuCategory(body, id);
+		return this.menuCategoriesService.update(body, id);
 	}
 
-	@ApiDeleteMenuCategoryResource()
+	@ApiDeleteAndConflict()
+	@ApiOperation({ summary: 'Delete a menu category' })
 	@Delete(':id')
-	@HasRoles(ROLES.ADMIN, ROLES.MANAGER)
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
-		await this.menuCategoriesService.deleteMenuCategory(id);
+		await this.menuCategoriesService.delete(id);
 	}
 }

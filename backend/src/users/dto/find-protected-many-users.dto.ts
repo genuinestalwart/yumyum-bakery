@@ -14,10 +14,9 @@ import {
 	StringToBoolean,
 	TrimOnly,
 	TrimToLowerCase,
-	TrimToUpperCase,
 } from 'src/common/decorators/transform.decorators';
 
-export class FindManyUsersDto {
+export class FindProtectedManyUsersDto {
 	@StringToBoolean()
 	@IsOptional()
 	@IsBoolean()
@@ -35,7 +34,7 @@ export class FindManyUsersDto {
 	@Min(1)
 	page?: number = 1;
 
-	@TrimToUpperCase()
+	@TrimToLowerCase()
 	@IsOptional()
 	@IsString()
 	@IsIn(Object.values(ROLES))
