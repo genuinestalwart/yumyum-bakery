@@ -3,15 +3,23 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Auth0Module } from './auth0/auth0.module';
 import { ConfigModule } from '@nestjs/config';
-import { PrismaModule } from './prisma/prisma.module';
+import { CustomersModule } from './customers/customers.module';
+import { EmployeesModule } from './employees/employees.module';
+import { InternalModule } from './internal/internal.module';
 import { MenuCategoriesModule } from './menu-categories/menu-categories.module';
+import { MenuItemsModule } from './menu-items/menu-items.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
 	imports: [
 		Auth0Module,
 		ConfigModule.forRoot({ isGlobal: true }),
+		CustomersModule,
+		EmployeesModule,
+		InternalModule,
 		MenuCategoriesModule,
+		MenuItemsModule,
 		PrismaModule,
 		UsersModule,
 	],

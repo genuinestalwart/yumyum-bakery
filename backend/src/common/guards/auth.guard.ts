@@ -1,15 +1,13 @@
 import {
 	type CanActivate,
 	type ExecutionContext,
-	HttpStatus,
 	Injectable,
 	UnauthorizedException,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import type { Role } from '../types/roles.types';
 import { auth } from 'express-oauth2-jwt-bearer';
-import { normalizeRoles } from '../utils/normalize-roles.utils';
-import { Role } from '../types/roles.types';
-import { AUTH0_IDENTIFIER } from '../../auth0/auth0.constants';
+import { AUTH0_IDENTIFIER, AUTH0_ROLE_PREFIX } from 'src/auth0/auth0.constants';
 import { ERROR_MESSAGES } from '../constants/errors.constants';
 
 @Injectable()
@@ -19,6 +17,12 @@ export class AuthGuard implements CanActivate {
 		issuerBaseURL: `https://${process.env.AUTH0_DOMAIN as string}/`,
 	});
 
+	/**
+	 * Validates the access token and extracts the requester's id and role from it.
+	 *
+	 * @throws {UnauthorizedException} If the access token is invalid
+	 * or doesn't contain requester's id and role.
+	 */
 	async canActivate(ctx: ExecutionContext): Promise<boolean> {
 		const request: Request = ctx.switchToHttp().getRequest();
 		const response: Response = ctx.switchToHttp().getResponse();
@@ -34,22 +38,23 @@ export class AuthGuard implements CanActivate {
 				});
 			});
 		} catch (error) {
-			// If the token is invalid
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
 		const payload = request.auth?.payload;
 		const key = `${AUTH0_IDENTIFIER}/roles`;
-		const roles = payload?.[key] as string[] | undefined;
+		const rolesInToken = payload?.[key] as string[] | undefined;
 		const id = payload?.sub as string | undefined;
 
-		if (!id || !roles || !roles.length) {
-			// If the access token doesn't contain user's id and role
+		if (!id || !rolesInToken || !rolesInToken.length) {
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
-		// Set the extracted user id and role into the request object for convenience
-		request.user = { id, role: normalizeRoles(roles)[0] as Role };
+		const sanitizedRoles = rolesInToken
+			.filter((role) => role.startsWith(AUTH0_ROLE_PREFIX))
+			.map((role) => role.slice(AUTH0_ROLE_PREFIX.length));
+
+		request.user = { id, role: sanitizedRoles[0] as Role };
 		return true;
 	}
 }

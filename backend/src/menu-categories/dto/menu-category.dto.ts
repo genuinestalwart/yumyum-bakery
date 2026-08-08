@@ -1,20 +1,14 @@
-import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsString, Matches, MaxLength } from 'class-validator';
+import { TrimToCategory } from 'src/common/decorators/transform.decorators';
+import { REGEX_KEBAB_CASE } from 'src/common/constants/regex.constants';
 
 export class MenuCategoryDto {
-	@IsNotEmpty()
+	@ApiProperty({ example: 'kebab-case' })
+	@TrimToCategory()
 	@IsString()
+	@IsNotEmpty()
 	@MaxLength(20)
-	@Transform(({ value }) => {
-		if (typeof value === 'string') {
-			return value
-				.trim()
-				.toLowerCase()
-				.replace(/[^a-z0-9 ]/g, '') // Remove all non-alphanumeric characters except spaces
-				.replace(/\s+/g, '-'); // Replace spaces with hyphens
-		}
-
-		return value;
-	})
+	@Matches(REGEX_KEBAB_CASE)
 	name: string;
 }

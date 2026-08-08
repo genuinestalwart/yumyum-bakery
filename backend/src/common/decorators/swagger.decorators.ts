@@ -1,4 +1,4 @@
-import { applyDecorators, HttpCode, HttpStatus, Type } from '@nestjs/common';
+import { applyDecorators, HttpCode, HttpStatus } from '@nestjs/common';
 import {
 	ApiBadRequestResponse,
 	ApiConflictResponse,
@@ -8,6 +8,7 @@ import {
 	ApiNoContentResponse,
 	ApiNotFoundResponse,
 	ApiOkResponse,
+	ApiResponseNoStatusOptions,
 	ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { ERROR_MESSAGES } from '../constants/errors.constants';
@@ -28,23 +29,50 @@ export const ApiForbiddenAndUnauthorized = () => {
 	);
 };
 
-export const ApiOkAndNotFound = (type: Type<unknown>) => {
+export const ApiNotFoundAndOk = (options?: ApiResponseNoStatusOptions) => {
 	return applyDecorators(
 		ApiNotFoundResponse({ description: ERROR_MESSAGES.NOT_FOUND }),
-		ApiOkResponse({ type }),
+		ApiOkResponse(options),
 	);
 };
 
-export const ApiCreateResource = (role: string, type: Type<unknown>) => {
+export const ApiCreateResource = (options?: ApiResponseNoStatusOptions) => {
 	return applyDecorators(
-		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_DUPLICATE }),
-		ApiCreatedResponse({ description: `must have ${role} role.`, type }),
+		ApiCreatedResponse(options),
 		ApiForbiddenAndUnauthorized(),
 	);
 };
 
-export const ApiUpdateResource = (type: Type<unknown>) => {
-	return applyDecorators(ApiForbiddenAndUnauthorized(), ApiOkAndNotFound(type));
+export const ApiCreateAndConflict = (options?: ApiResponseNoStatusOptions) => {
+	return applyDecorators(
+		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_DUPLICATE }),
+		ApiCreateResource(options),
+	);
+};
+
+export const ApiProtectedManyResource = (
+	options?: ApiResponseNoStatusOptions,
+) => {
+	return applyDecorators(ApiForbiddenAndUnauthorized(), ApiOkResponse(options));
+};
+
+export const ApiProtectedOneResource = (
+	options?: ApiResponseNoStatusOptions,
+) => {
+	return applyDecorators(
+		ApiForbiddenAndUnauthorized(),
+		ApiNotFoundAndOk(options),
+	);
+};
+
+export const ApiUpdateResource = (options?: ApiResponseNoStatusOptions) =>
+	ApiProtectedOneResource(options);
+
+export const ApiUpdateAndConflict = (options?: ApiResponseNoStatusOptions) => {
+	return applyDecorators(
+		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_STATE }),
+		ApiUpdateResource(options),
+	);
 };
 
 export const ApiDeleteResource = () => {
@@ -53,5 +81,12 @@ export const ApiDeleteResource = () => {
 		ApiNotFoundResponse({ description: ERROR_MESSAGES.NOT_FOUND }),
 		ApiNoContentResponse({ description: 'Resource deleted.' }),
 		HttpCode(HttpStatus.NO_CONTENT),
+	);
+};
+
+export const ApiDeleteAndConflict = () => {
+	return applyDecorators(
+		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_STATE }),
+		ApiDeleteResource(),
 	);
 };

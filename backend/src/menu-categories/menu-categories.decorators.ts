@@ -1,29 +1,19 @@
-import { applyDecorators } from '@nestjs/common';
-import { ApiConflictResponse, ApiOkResponse } from '@nestjs/swagger';
-import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
+import { ApiOkResponse } from '@nestjs/swagger';
 import {
-	ApiCreateResource,
-	ApiDeleteResource,
+	ApiCreateAndConflict,
 	ApiUpdateResource,
 } from 'src/common/decorators/swagger.decorators';
 import { MenuCategoryResponseDto } from './dto/menu-category-response.dto';
 import { ROLES } from 'src/common/types/roles.types';
 
 export const ApiCreateMenuCategoryResource = () =>
-	ApiCreateResource(
-		`${ROLES.ADMIN} or ${ROLES.MANAGER}`,
-		MenuCategoryResponseDto,
-	);
+	ApiCreateAndConflict({
+		description: `must be a ${ROLES.ADMIN.toUpperCase()} or ${ROLES.MANAGER.toUpperCase()}`,
+		type: MenuCategoryResponseDto,
+	});
 
-export const ApiFindAllMenuCategoriesResource = () =>
+export const ApiFindPublicManyMenuCategoriesResource = () =>
 	ApiOkResponse({ type: [MenuCategoryResponseDto] });
 
 export const ApiUpdateMenuCategoryResource = () =>
-	ApiUpdateResource(MenuCategoryResponseDto);
-
-export const ApiDeleteMenuCategoryResource = () => {
-	return applyDecorators(
-		ApiConflictResponse({ description: ERROR_MESSAGES.CONFLICT_STATE }),
-		ApiDeleteResource(),
-	);
-};
+	ApiUpdateResource({ type: MenuCategoryResponseDto });

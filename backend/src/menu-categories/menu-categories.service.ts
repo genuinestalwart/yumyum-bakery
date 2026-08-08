@@ -10,20 +10,21 @@ export class MenuCategoriesService {
 	constructor(private readonly prismaService: PrismaService) {}
 	private readonly select: Prisma.MenuCategorySelect = { id: true, name: true };
 
-	async createMenuCategory(
-		dto: MenuCategoryDto,
-	): Promise<MenuCategoryResponseDto> {
+	async create(dto: MenuCategoryDto): Promise<MenuCategoryResponseDto> {
 		return this.prismaService.menuCategory.create({
 			data: dto,
 			select: this.select,
 		});
 	}
 
-	async findAllMenuCategories(): Promise<MenuCategoryResponseDto[]> {
-		return this.prismaService.menuCategory.findMany({ select: this.select });
+	async findPublicMany(): Promise<MenuCategoryResponseDto[]> {
+		return this.prismaService.menuCategory.findMany({
+			orderBy: { name: 'asc' },
+			select: this.select,
+		});
 	}
 
-	async updateMenuCategory(
+	async update(
 		dto: MenuCategoryDto,
 		id: string,
 	): Promise<MenuCategoryResponseDto> {
@@ -34,9 +35,9 @@ export class MenuCategoriesService {
 		});
 	}
 
-	async deleteMenuCategory(id: string): Promise<void> {
+	async delete(id: string): Promise<void> {
 		const categoryIsInUse = await this.prismaService.menuItem.count({
-			where: { menu_categories: { some: { id } } },
+			where: { menuCategories: { some: { id } } },
 		});
 
 		if (categoryIsInUse) {
