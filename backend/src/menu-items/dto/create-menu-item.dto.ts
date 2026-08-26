@@ -12,7 +12,7 @@ import {
 	MaxLength,
 	Min,
 } from 'class-validator';
-import { TrimOnly } from 'src/common/decorators/transform.decorators';
+import { ToTrimmed } from 'src/common/decorators/transform.decorators';
 
 export class CreateMenuItemDto {
 	@IsArray()
@@ -20,13 +20,13 @@ export class CreateMenuItemDto {
 	@IsUUID(4, { each: true })
 	categories: string[];
 
-	@TrimOnly()
+	@ToTrimmed()
 	@IsString()
 	@IsNotEmpty()
 	@MaxLength(500)
 	description: string;
 
-	@TrimOnly()
+	@ToTrimmed()
 	@IsString()
 	@IsUrl()
 	@MaxLength(2048)
@@ -35,7 +35,7 @@ export class CreateMenuItemDto {
 	@IsBoolean()
 	isPreOrderOnly: boolean;
 
-	@TrimOnly()
+	@ToTrimmed()
 	@IsString()
 	@IsNotEmpty()
 	@MaxLength(50)

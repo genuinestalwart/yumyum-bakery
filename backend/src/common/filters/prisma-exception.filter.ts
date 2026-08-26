@@ -8,6 +8,7 @@ import type { Response } from 'express';
 import { Prisma } from 'prisma/generated/client';
 import { ErrorResponse } from '../types/errors.types';
 import { ERROR_MESSAGES, FALLBACK_ERROR } from '../constants/errors.constants';
+import { createLogger } from '../utils/logger.util';
 
 @Catch(
 	Prisma.PrismaClientInitializationError,
@@ -15,6 +16,8 @@ import { ERROR_MESSAGES, FALLBACK_ERROR } from '../constants/errors.constants';
 	Prisma.PrismaClientValidationError,
 )
 export class PrismaExceptionFilter implements ExceptionFilter {
+	private readonly logger = createLogger(PrismaExceptionFilter.name);
+
 	catch(
 		exception:
 			| Prisma.PrismaClientInitializationError
@@ -25,7 +28,7 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 		const response = host.switchToHttp().getResponse<Response>();
 
 		if (!(exception instanceof Prisma.PrismaClientKnownRequestError)) {
-			console.error('[Prisma Error]:', exception);
+			this.logger.error(`Prisma Error: ${exception.message}`, exception.stack);
 			response.status(FALLBACK_ERROR.statusCode).json(FALLBACK_ERROR);
 			return;
 		}
@@ -50,8 +53,10 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 
 		const prismaError = errorMapper[exception.code] ?? FALLBACK_ERROR;
 
-		if (prismaError.statusCode === FALLBACK_ERROR.statusCode) {
-			console.error('[Prisma Error]:', exception);
+		if (prismaError.statusCode >= HttpStatus.INTERNAL_SERVER_ERROR) {
+			this.logger.error(`Prisma Error: ${exception.message}`, exception.stack);
+		} else {
+			this.logger.warn(`Prisma Error: ${exception.message}`, exception.stack);
 		}
 
 		response.status(prismaError.statusCode).json(prismaError);

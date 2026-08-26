@@ -1,11 +1,9 @@
 import { IsIn, IsString } from 'class-validator';
-import { TrimToLowerCase } from 'src/common/decorators/transform.decorators';
-import { ROLES } from 'src/common/types/roles.types';
-const ASSIGNABLE_ROLES = [ROLES.MANAGER, ROLES.STAFF] as const;
-type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
+import { ASSIGNABLE_ROLES, type AssignableRole } from '../employees.types';
 
 export class UpdateEmployeeRoleDto {
-	@TrimToLowerCase()
+	@ToTrimmedLowerCase()
 	@IsString()
 	@IsIn(ASSIGNABLE_ROLES)
 	role: AssignableRole;

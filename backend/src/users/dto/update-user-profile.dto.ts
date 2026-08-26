@@ -5,17 +5,17 @@ import {
 	IsUrl,
 	MaxLength,
 } from 'class-validator';
-import { TrimOnly } from 'src/common/decorators/transform.decorators';
+import { ToTrimmed } from 'src/common/decorators/transform.decorators';
 
 export class UpdateUserProfileDto {
-	@TrimOnly()
+	@ToTrimmed()
 	@IsOptional()
 	@IsString()
 	@IsNotEmpty()
 	@MaxLength(30)
 	name?: string;
 
-	@TrimOnly()
+	@ToTrimmed()
 	@IsOptional()
 	@IsString()
 	@IsUrl()

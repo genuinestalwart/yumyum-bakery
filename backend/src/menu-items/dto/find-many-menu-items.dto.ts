@@ -9,13 +9,13 @@ import {
 } from 'class-validator';
 import { REGEX_KEBAB_CASE } from 'src/common/constants/regex.constants';
 import {
-	QueryToCategory,
-	StringToBoolean,
-	TrimOnly,
+	QueryToCategoryNames,
+	QueryToBoolean,
+	ToTrimmed,
 } from 'src/common/decorators/transform.decorators';
 
 export class FindManyMenuItemsDto {
-	@QueryToCategory()
+	@QueryToCategoryNames()
 	@IsOptional()
 	@IsArray()
 	@ArrayNotEmpty()
@@ -24,17 +24,17 @@ export class FindManyMenuItemsDto {
 	@Matches(REGEX_KEBAB_CASE, { each: true })
 	categories?: string[];
 
-	@StringToBoolean()
+	@QueryToBoolean()
 	@IsOptional()
 	@IsBoolean()
 	isInStock?: boolean;
 
-	@StringToBoolean()
+	@QueryToBoolean()
 	@IsOptional()
 	@IsBoolean()
 	isPreOrderOnly?: boolean;
 
-	@TrimOnly()
+	@ToTrimmed()
 	@IsOptional()
 	@IsString()
 	search?: string;

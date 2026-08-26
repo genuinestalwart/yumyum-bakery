@@ -2,10 +2,7 @@ import crypto from 'crypto';
 import {
 	ConflictException,
 	ForbiddenException,
-	HttpStatus,
 	Injectable,
-	InternalServerErrorException,
-	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { CreateEmployeeDto } from './dto/create-employee.dto';
@@ -13,11 +10,15 @@ import { UpdateEmployeeRoleDto } from './dto/update-employee-role.dto';
 import { ROLES, type Role } from 'src/common/types/roles.types';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { Auth0Service } from 'src/auth0/auth0.service';
-import { AUTH0_CONNECTION, AUTH0_ROLE_PREFIX } from 'src/auth0/auth0.constants';
-import { ManagementError } from 'auth0';
+import {
+	AUTH0_CONNECTION,
+	AUTH0_ROLE_IDS,
+	AUTH0_ROLE_PREFIX,
+} from 'src/auth0/auth0.constants';
 import { UsersService } from 'src/users/users.service';
 import { serializeProtectedUser } from 'src/users/users.utils';
 import { ProtectedUserResponseDto } from 'src/users/dto/protected-user-response.dto';
+import { createLogger } from 'src/common/utils/logger.util';
 
 @Injectable()
 export class EmployeesService {
@@ -26,16 +27,13 @@ export class EmployeesService {
 		private readonly usersService: UsersService,
 	) {}
 
-	private readonly logger = new Logger(EmployeesService.name, {
-		timestamp: true,
-	});
+	private readonly logger = createLogger(EmployeesService.name);
 
 	/**
 	 * Creates a new MANAGER or STAFF with an unverified email address.
 	 *
 	 * @throws {ForbiddenException} If the requester doesn't have a higher role
 	 * than the employee being created.
-	 * @throws {ConflictException} If the email address is already in use.
 	 */
 	async create(
 		dto: CreateEmployeeDto,
@@ -43,53 +41,28 @@ export class EmployeesService {
 	): Promise<ProtectedUserResponseDto> {
 		this.ensureHigherRole(requesterRole, ROLES[dto.role]);
 
+		const employee = await this.auth0Service.users.create({
+			app_metadata: { role: AUTH0_ROLE_PREFIX + dto.role },
+			connection: AUTH0_CONNECTION,
+			email: dto.email,
+			email_verified: false,
+			name: dto.name,
+			password: this.generatePassword(),
+			verify_email: false,
+		});
+
+		const id = employee.user_id as string;
+
 		try {
-			const employee = await this.auth0Service.users.create({
-				app_metadata: { role: AUTH0_ROLE_PREFIX + dto.role },
-				connection: AUTH0_CONNECTION,
-				email: dto.email,
-				email_verified: false,
-				name: dto.name,
-				password: this.generatePassword(),
-				verify_email: false,
+			await this.auth0Service.users.roles.assign(id, {
+				roles: [AUTH0_ROLE_IDS[dto.role]],
 			});
 
-			const id = employee.user_id as string;
-			const roles = [process.env[`AUTH0_ROLE_${dto.role}`] as string];
-
-			try {
-				await this.auth0Service.users.roles.assign(id, { roles });
-				return serializeProtectedUser(employee);
-			} catch (roleAssignError) {
-				this.logger.error(
-					`Role assignment failed for employee ${id}. Initiating cleanup delete.`,
-					roleAssignError,
-				);
-
-				try {
-					await this.auth0Service.users.delete(id);
-				} catch (deleteEmployeeError) {
-					this.logger.error(
-						`Cleanup delete action failed for employee ${id}`,
-						deleteEmployeeError,
-					);
-				}
-
-				throw roleAssignError;
-			}
+			this.logger.log(`Employee created successfully | ID: ${id}`);
+			return serializeProtectedUser(employee);
 		} catch (error) {
-			this.logger.error(`Employee create action failed`, error);
-
-			if (
-				error instanceof ManagementError &&
-				error.statusCode === HttpStatus.CONFLICT
-			) {
-				throw new ConflictException(ERROR_MESSAGES.CONFLICT_DUPLICATE);
-			}
-
-			throw new InternalServerErrorException(
-				ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-			);
+			await this.auth0Service.users.delete(id);
+			throw error;
 		}
 	}
 
@@ -115,13 +88,8 @@ export class EmployeesService {
 			return employee;
 		}
 
-		const roleIdMapper: Record<'manager' | 'staff', string> = {
-			[ROLES.MANAGER]: process.env['AUTH0_ROLE_MANAGER'] as string,
-			[ROLES.STAFF]: process.env['AUTH0_ROLE_STAFF'] as string,
-		};
-
-		const oldRoleId = roleIdMapper[employee.role];
-		const newRoleId = roleIdMapper[dto.role];
+		const oldRoleId = AUTH0_ROLE_IDS[employee.role];
+		const newRoleId = AUTH0_ROLE_IDS[dto.role];
 		await this.auth0Service.users.roles.delete(id, { roles: [oldRoleId] });
 
 		try {
@@ -132,42 +100,12 @@ export class EmployeesService {
 					app_metadata: { role: AUTH0_ROLE_PREFIX + dto.role },
 				});
 			} catch (appMetadataError) {
-				this.logger.error(
-					`Failed to update app_metadata of employee ${id}. Undoing role assignment.`,
-					appMetadataError,
-				);
-
-				try {
-					await this.auth0Service.users.roles.delete(id, {
-						roles: [newRoleId],
-					});
-				} catch (undoRoleAssignError) {
-					this.logger.error(
-						`Failed to undo role assignment of employee ${id}`,
-						undoRoleAssignError,
-					);
-				}
-
+				await this.auth0Service.users.roles.delete(id, { roles: [newRoleId] });
 				throw appMetadataError;
 			}
 		} catch (error) {
-			this.logger.error(
-				`Failed to assign new role to employee ${id}. Undoing role removal`,
-				error,
-			);
-
-			try {
-				await this.auth0Service.users.roles.assign(id, { roles: [oldRoleId] });
-			} catch (undoRoleRemoveError) {
-				this.logger.error(
-					`Failed to undo role removal of employee ${id}`,
-					undoRoleRemoveError,
-				);
-			}
-
-			throw new InternalServerErrorException(
-				ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-			);
+			await this.auth0Service.users.roles.assign(id, { roles: [oldRoleId] });
+			throw error;
 		}
 
 		return await this.usersService.findProtectedOne(id);
@@ -196,6 +134,7 @@ export class EmployeesService {
 		] as const;
 
 		if (hierarchy.indexOf(requesterRole) <= hierarchy.indexOf(targetRole)) {
+			this.logger.warn(`${requesterRole} can't modify ${targetRole}`);
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
 	}
@@ -229,16 +168,12 @@ export class EmployeesService {
 		}
 
 		this.ensureHigherRole(requesterRole, targetRole);
+		const employee = await this.auth0Service.users.update(id, { blocked });
 
-		try {
-			const employee = await this.auth0Service.users.update(id, { blocked });
-			return serializeProtectedUser(employee);
-		} catch (error) {
-			this.logger.error(`Failed to update employee ${id}`, error);
+		this.logger.log(
+			`Employee ${blocked ? 'd' : 'r'}eactivated successfully | ID: ${id}`,
+		);
 
-			throw new InternalServerErrorException(
-				ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-			);
-		}
+		return serializeProtectedUser(employee);
 	}
 }

@@ -16,6 +16,7 @@ import { FindPublicManyMenuItemsDto } from './dto/find-public-many-menu-items.dt
 import { FindManyMenuItemsDto } from './dto/find-many-menu-items.dto';
 import { SORT_BY } from './menu-items.types';
 import { SORT_ORDER } from 'src/common/types/sorting.types';
+import { createLogger } from 'src/common/utils/logger.util';
 
 const include: Prisma.MenuItemInclude = {
 	menuCategories: { select: { id: true, name: true } },
@@ -26,6 +27,7 @@ const omit: Prisma.MenuItemOmit = { createdAt: true, isVisible: true } as const;
 @Injectable()
 export class MenuItemsService {
 	constructor(private readonly prismaService: PrismaService) {}
+	private readonly logger = createLogger(MenuItemsService.name);
 
 	async create(dto: CreateMenuItemDto): Promise<ProtectedMenuItemResponseDto> {
 		const menuItem = await this.prismaService.menuItem.create({
@@ -137,6 +139,7 @@ export class MenuItemsService {
 		const { isArchived, isPublished } = await this.getMenuItemStatus(id);
 
 		if (isArchived || !isPublished) {
+			this.logger.warn(`Menu Item isn't published and unarchived | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 
@@ -160,6 +163,7 @@ export class MenuItemsService {
 		});
 
 		if (wasOrdered) {
+			this.logger.warn(`Menu Item has been ordered once already | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 
@@ -246,6 +250,7 @@ export class MenuItemsService {
 		const { isArchived } = await this.getMenuItemStatus(id);
 
 		if (isArchived) {
+			this.logger.warn(`Menu Item isn't unarchived | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 

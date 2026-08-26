@@ -3,6 +3,7 @@ import {
 	type ExecutionContext,
 	ForbiddenException,
 	Injectable,
+	UnauthorizedException,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { Reflector } from '@nestjs/core';
@@ -10,10 +11,12 @@ import type { Request } from 'express';
 import type { Role } from '../types/roles.types';
 import { ERROR_MESSAGES } from '../constants/errors.constants';
 import { RequireRoles } from '../decorators/require-roles.decorator';
+import { createLogger } from '../utils/logger.util';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
 	constructor(private reflector: Reflector) {}
+	private readonly logger = createLogger(RolesGuard.name);
 
 	/**
 	 * Ensures that the requester has one of the required roles.
@@ -33,7 +36,19 @@ export class RolesGuard implements CanActivate {
 		const request: Request = ctx.switchToHttp().getRequest();
 		const user = request.user;
 
-		if (!user || !requiredRoles.includes(user.role)) {
+		if (!user) {
+			this.logger.warn(
+				`Requester Not Found | ${request.method} ${request.url} | IP: ${request.ip}`,
+			);
+
+			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
+		}
+
+		if (!requiredRoles.includes(user.role)) {
+			this.logger.warn(
+				`Missing Required Roles | ${request.method} ${request.url} | IP: ${request.ip} | Requester: ${JSON.stringify(user)} | Required roles: ${requiredRoles.join(', ')}`,
+			);
+
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
 

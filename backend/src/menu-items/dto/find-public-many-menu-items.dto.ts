@@ -8,7 +8,7 @@ import {
 	Max,
 	Min,
 } from 'class-validator';
-import { TrimToLowerCase } from 'src/common/decorators/transform.decorators';
+import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import { SORT_BY, type SortBy } from '../menu-items.types';
 import { FindManyMenuItemsDto } from './find-many-menu-items.dto';
@@ -40,13 +40,13 @@ export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 	@Min(0.01)
 	minPrice?: number;
 
-	@TrimToLowerCase()
+	@ToTrimmedLowerCase()
 	@IsOptional()
 	@IsString()
 	@IsIn(Object.values(SORT_BY))
 	sortBy?: SortBy = SORT_BY.POPULARITY;
 
-	@TrimToLowerCase()
+	@ToTrimmedLowerCase()
 	@IsOptional()
 	@IsString()
 	@IsIn(Object.values(SORT_ORDER))

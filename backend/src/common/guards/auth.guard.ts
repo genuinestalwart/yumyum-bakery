@@ -7,15 +7,22 @@ import {
 import type { Request, Response } from 'express';
 import type { Role } from '../types/roles.types';
 import { auth } from 'express-oauth2-jwt-bearer';
-import { AUTH0_IDENTIFIER, AUTH0_ROLE_PREFIX } from 'src/auth0/auth0.constants';
+import {
+	AUTH0_DOMAIN,
+	AUTH0_IDENTIFIER,
+	AUTH0_ROLE_PREFIX,
+} from 'src/auth0/auth0.constants';
 import { ERROR_MESSAGES } from '../constants/errors.constants';
+import { createLogger } from '../utils/logger.util';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
 	private checkJWT = auth({
 		audience: AUTH0_IDENTIFIER,
-		issuerBaseURL: `https://${process.env.AUTH0_DOMAIN as string}/`,
+		issuerBaseURL: `https://${AUTH0_DOMAIN}/`,
 	});
+
+	private readonly logger = createLogger(AuthGuard.name);
 
 	/**
 	 * Validates the access token and extracts the requester's id and role from it.
@@ -29,15 +36,16 @@ export class AuthGuard implements CanActivate {
 
 		try {
 			await new Promise<void>((resolve, reject) => {
-				this.checkJWT(request, response, (error: any) => {
-					if (error) {
-						return reject(error);
-					}
-
-					resolve();
-				});
+				this.checkJWT(request, response, (error: any) =>
+					error ? reject(error) : resolve(),
+				);
 			});
 		} catch (error) {
+			this.logger.warn(
+				'JWT Validation Failed',
+				error instanceof Error ? error.stack : undefined,
+			);
+
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
@@ -47,6 +55,10 @@ export class AuthGuard implements CanActivate {
 		const id = payload?.sub as string | undefined;
 
 		if (!id || !rolesInToken || !rolesInToken.length) {
+			this.logger.warn(
+				`Requester Missing | ${request.method} ${request.url} | IP: ${request.ip}`,
+			);
+
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 

@@ -2,8 +2,6 @@ import {
 	ConflictException,
 	ForbiddenException,
 	Injectable,
-	InternalServerErrorException,
-	Logger,
 	NotFoundException,
 } from '@nestjs/common';
 import { UpdateCustomerEmailDto } from './dto/update-customer-email.dto';
@@ -15,6 +13,7 @@ import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { Prisma } from 'prisma/generated/client';
 import { serializeProtectedUser } from 'src/users/users.utils';
 import { ProtectedUserResponseDto } from 'src/users/dto/protected-user-response.dto';
+import { createLogger } from 'src/common/utils/logger.util';
 
 @Injectable()
 export class CustomersService {
@@ -24,9 +23,7 @@ export class CustomersService {
 		private readonly usersService: UsersService,
 	) {}
 
-	private readonly logger = new Logger(CustomersService.name, {
-		timestamp: true,
-	});
+	private readonly logger = createLogger(CustomersService.name);
 
 	/**
 	 * @throws {ForbiddenException} If the CUSTOMER is banned.
@@ -42,21 +39,13 @@ export class CustomersService {
 			return customer;
 		}
 
-		try {
-			const updatedCustomer = await this.auth0Service.users.update(id, {
-				email: dto.email,
-				email_verified: false,
-				verify_email: true,
-			});
+		const updatedCustomer = await this.auth0Service.users.update(id, {
+			email: dto.email,
+			email_verified: false,
+			verify_email: true,
+		});
 
-			return serializeProtectedUser(updatedCustomer);
-		} catch (error) {
-			this.logger.error(`Failed to update CUSTOMER ${id}`, error);
-
-			throw new InternalServerErrorException(
-				ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-			);
-		}
+		return serializeProtectedUser(updatedCustomer);
 	}
 
 	async ban(id: string): Promise<ProtectedUserResponseDto> {
@@ -71,17 +60,18 @@ export class CustomersService {
 	 * Deletes the CUSTOMER and the relevant data.
 	 *
 	 * @throws {ForbiddenException} If the CUSTOMER is banned.
-	 * @throws {ConflictException} If the CUSTOMER has any active orders.
+	 * @throws {ConflictException} If the CUSTOMER has any ongoing orders.
 	 */
 	async delete(id: string): Promise<void> {
 		const { blocked } = await this.usersService.findProtectedOne(id);
 		this.usersService.ensureNotBlocked(blocked, ROLES.CUSTOMER);
 
-		const activeOrders = await this.prismaService.order.count({
-			where: this.getOrdersWhere(id),
+		const hasOngoingOrders = await this.prismaService.order.count({
+			where: this.getOngoingOrdersWhere(id),
 		});
 
-		if (activeOrders) {
+		if (hasOngoingOrders) {
+			this.logger.warn(`CUSTOMER has active orders ongoing | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 
@@ -95,9 +85,11 @@ export class CustomersService {
 
 			await this.auth0Service.users.delete(id);
 		});
+
+		this.logger.log(`CUSTOMER deleted successfully | ID: ${id}`);
 	}
 
-	private getOrdersWhere(customerId: string): Prisma.OrderWhereInput {
+	private getOngoingOrdersWhere(customerId: string): Prisma.OrderWhereInput {
 		const orderStatus: Prisma.EnumOrderStatusFilter = {
 			notIn: [
 				'CANCELLED',
@@ -140,30 +132,24 @@ export class CustomersService {
 			return user;
 		}
 
-		try {
-			if (blocked) {
-				const customer = await this.prismaService.$transaction(async (tx) => {
-					await this.purgeAccountData(id, tx);
+		if (blocked) {
+			const customer = await this.prismaService.$transaction(async (tx) => {
+				await this.purgeAccountData(id, tx);
 
-					await tx.order.updateMany({
-						data: { orderStatus: 'CANCELLED' },
-						where: this.getOrdersWhere(id),
-					});
-
-					return await this.auth0Service.users.update(id, { blocked });
+				await tx.order.updateMany({
+					data: { orderStatus: 'CANCELLED' },
+					where: this.getOngoingOrdersWhere(id),
 				});
 
-				return serializeProtectedUser(customer);
-			} else {
-				const customer = await this.auth0Service.users.update(id, { blocked });
-				return serializeProtectedUser(customer);
-			}
-		} catch (error) {
-			this.logger.error(`Failed to update CUSTOMER ${id}`, error);
+				return await this.auth0Service.users.update(id, { blocked });
+			});
 
-			throw new InternalServerErrorException(
-				ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-			);
+			this.logger.log(`CUSTOMER banned successfully | ID: ${id}`);
+			return serializeProtectedUser(customer);
+		} else {
+			const customer = await this.auth0Service.users.update(id, { blocked });
+			this.logger.log(`CUSTOMER unbanned successfully | ID: ${id}`);
+			return serializeProtectedUser(customer);
 		}
 	}
 }

@@ -4,10 +4,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { MenuCategoryResponseDto } from './dto/menu-category-response.dto';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { Prisma } from 'prisma/generated/client';
+import { createLogger } from 'src/common/utils/logger.util';
 
 @Injectable()
 export class MenuCategoriesService {
 	constructor(private readonly prismaService: PrismaService) {}
+	private readonly logger = createLogger(MenuCategoriesService.name);
 	private readonly select: Prisma.MenuCategorySelect = { id: true, name: true };
 
 	async create(dto: MenuCategoryDto): Promise<MenuCategoryResponseDto> {
@@ -41,6 +43,7 @@ export class MenuCategoriesService {
 		});
 
 		if (categoryIsInUse) {
+			this.logger.warn(`Menu Category is tied to some Menu Items | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 
