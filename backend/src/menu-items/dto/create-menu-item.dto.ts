@@ -27,7 +27,6 @@ export class CreateMenuItemDto {
 	description: string;
 
 	@ToTrimmed()
-	@IsString()
 	@IsUrl()
 	@MaxLength(2048)
 	image: string;

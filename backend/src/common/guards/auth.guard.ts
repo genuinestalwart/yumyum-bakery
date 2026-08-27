@@ -54,7 +54,7 @@ export class AuthGuard implements CanActivate {
 		const rolesInToken = payload?.[key] as string[] | undefined;
 		const id = payload?.sub as string | undefined;
 
-		if (!id || !rolesInToken || !rolesInToken.length) {
+		if (!id || !rolesInToken || rolesInToken.length === 0) {
 			this.logger.warn(
 				`Requester Missing | ${request.method} ${request.url} | IP: ${request.ip}`,
 			);

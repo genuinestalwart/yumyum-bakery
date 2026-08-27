@@ -36,7 +36,6 @@ export class FindProtectedManyUsersDto {
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
-	@IsString()
 	@IsIn(Object.values(ROLES))
 	role?: Role;
 
@@ -47,13 +46,11 @@ export class FindProtectedManyUsersDto {
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
-	@IsString()
 	@IsIn(Object.values(SORT_BY))
 	sortBy?: SortBy = SORT_BY.NAME;
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
-	@IsString()
 	@IsIn(Object.values(SORT_ORDER))
 	sortOrder?: SortOrder = SORT_ORDER.ASC;
 }

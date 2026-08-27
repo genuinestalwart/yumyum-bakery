@@ -1,13 +1,5 @@
 import { Type } from 'class-transformer';
-import {
-	IsIn,
-	IsInt,
-	IsNumber,
-	IsOptional,
-	IsString,
-	Max,
-	Min,
-} from 'class-validator';
+import { IsIn, IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
 import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import { SORT_BY, type SortBy } from '../menu-items.types';
@@ -42,13 +34,11 @@ export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
-	@IsString()
 	@IsIn(Object.values(SORT_BY))
 	sortBy?: SortBy = SORT_BY.POPULARITY;
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
-	@IsString()
 	@IsIn(Object.values(SORT_ORDER))
 	sortOrder?: SortOrder = SORT_ORDER.DESC;
 }

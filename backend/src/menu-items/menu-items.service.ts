@@ -18,11 +18,11 @@ import { SORT_BY } from './menu-items.types';
 import { SORT_ORDER } from 'src/common/types/sorting.types';
 import { createLogger } from 'src/common/utils/logger.util';
 
-const include: Prisma.MenuItemInclude = {
+const include = {
 	menuCategories: { select: { id: true, name: true } },
-} as const;
+} satisfies Prisma.MenuItemInclude;
 
-const omit: Prisma.MenuItemOmit = { createdAt: true, isVisible: true } as const;
+const omit = { createdAt: true, isVisible: true } satisfies Prisma.MenuItemOmit;
 
 @Injectable()
 export class MenuItemsService {
@@ -54,9 +54,7 @@ export class MenuItemsService {
 			where,
 		});
 
-		return menuItems.map((menuItem) =>
-			this.serializeProtectedMenuItem(menuItem),
-		);
+		return menuItems.map((item) => this.serializeProtectedMenuItem(item));
 	}
 
 	async findPublicMany(
@@ -82,7 +80,7 @@ export class MenuItemsService {
 			},
 		});
 
-		return menuItems.map((menuItem) => this.serializePublicMenuItem(menuItem));
+		return menuItems.map((item) => this.serializePublicMenuItem(item));
 	}
 
 	async findProtectedOne(id: string): Promise<ProtectedMenuItemResponseDto> {
@@ -158,11 +156,11 @@ export class MenuItemsService {
 	}
 
 	async delete(id: string): Promise<void> {
-		const wasOrdered = await this.prismaService.orderedItem.count({
+		const timesOrdered = await this.prismaService.orderedItem.count({
 			where: { menuItemId: id },
 		});
 
-		if (wasOrdered) {
+		if (timesOrdered > 0) {
 			this.logger.warn(`Menu Item has been ordered once already | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}

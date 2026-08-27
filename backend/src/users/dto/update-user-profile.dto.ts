@@ -17,7 +17,6 @@ export class UpdateUserProfileDto {
 
 	@ToTrimmed()
 	@IsOptional()
-	@IsString()
 	@IsUrl()
 	@MaxLength(2048)
 	picture?: string;

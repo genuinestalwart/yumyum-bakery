@@ -1,4 +1,4 @@
-import { applyDecorators, HttpCode, HttpStatus } from '@nestjs/common';
+import { applyDecorators } from '@nestjs/common';
 import {
 	ApiBadRequestResponse,
 	ApiConflictResponse,
@@ -80,7 +80,6 @@ export const ApiDeleteResource = () => {
 		ApiForbiddenAndUnauthorized(),
 		ApiNotFoundResponse({ description: ERROR_MESSAGES.NOT_FOUND }),
 		ApiNoContentResponse({ description: 'Resource deleted.' }),
-		HttpCode(HttpStatus.NO_CONTENT),
 	);
 };
 

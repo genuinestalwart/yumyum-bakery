@@ -9,6 +9,8 @@ import {
 	ParseUUIDPipe,
 	Query,
 	BadRequestException,
+	HttpCode,
+	HttpStatus,
 } from '@nestjs/common';
 import { MenuItemsService } from './menu-items.service';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
@@ -74,7 +76,7 @@ export class MenuItemsController {
 		@Body() body: UpdateMenuItemDto,
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<ProtectedMenuItemResponseDto> {
-		if (!Object.keys(body).length) {
+		if (Object.keys(body).length === 0) {
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
 
@@ -115,6 +117,7 @@ export class MenuItemsController {
 	@ApiDeleteAndConflict()
 	@ApiOperation({ summary: 'Delete a menu item' })
 	@Delete(':id')
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
 		await this.menuItemsService.delete(id);

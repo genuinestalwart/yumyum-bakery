@@ -66,11 +66,11 @@ export class CustomersService {
 		const { blocked } = await this.usersService.findProtectedOne(id);
 		this.usersService.ensureNotBlocked(blocked, ROLES.CUSTOMER);
 
-		const hasOngoingOrders = await this.prismaService.order.count({
+		const ongoingOrders = await this.prismaService.order.count({
 			where: this.getOngoingOrdersWhere(id),
 		});
 
-		if (hasOngoingOrders) {
+		if (ongoingOrders > 0) {
 			this.logger.warn(`CUSTOMER has active orders ongoing | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}

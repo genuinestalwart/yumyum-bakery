@@ -7,6 +7,8 @@ import {
 	Param,
 	Delete,
 	ParseUUIDPipe,
+	HttpCode,
+	HttpStatus,
 } from '@nestjs/common';
 import { MenuCategoriesService } from './menu-categories.service';
 import { MenuCategoryDto } from './dto/menu-category.dto';
@@ -61,6 +63,7 @@ export class MenuCategoriesController {
 	@ApiDeleteAndConflict()
 	@ApiOperation({ summary: 'Delete a menu category' })
 	@Delete(':id')
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async delete(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
 		await this.menuCategoriesService.delete(id);

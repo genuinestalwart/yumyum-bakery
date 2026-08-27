@@ -53,7 +53,7 @@ export class UsersController {
 		@Body() body: UpdateUserProfileDto,
 		@Requester() requester: RequestedBy,
 	): Promise<ProtectedUserResponseDto> {
-		if (!Object.keys(body).length) {
+		if (Object.keys(body).length === 0) {
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
 

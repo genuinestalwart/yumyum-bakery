@@ -14,9 +14,8 @@ import { ASSIGNABLE_ROLES, type AssignableRole } from '../employees.types';
 
 export class CreateEmployeeDto {
 	@ToTrimmedLowerCase()
-	@IsString()
-	@IsLowercase()
 	@IsEmail()
+	@IsLowercase()
 	@MaxLength(255)
 	email: string;
 
@@ -27,7 +26,6 @@ export class CreateEmployeeDto {
 	name: string;
 
 	@ToTrimmedLowerCase()
-	@IsString()
 	@IsIn(ASSIGNABLE_ROLES)
 	role: AssignableRole;
 }
