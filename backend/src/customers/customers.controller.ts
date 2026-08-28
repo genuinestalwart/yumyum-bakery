@@ -1,4 +1,12 @@
-import { Controller, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+	Controller,
+	Body,
+	Patch,
+	Param,
+	Delete,
+	HttpCode,
+	HttpStatus,
+} from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { UpdateCustomerEmailDto } from './dto/update-customer-email.dto';
 import { ApiUpdateUserResource } from 'src/users/users.decorators';
@@ -48,6 +56,7 @@ export class CustomersController {
 	@ApiDeleteAndConflict()
 	@ApiOperation({ summary: 'Delete a CUSTOMER' })
 	@Delete('me')
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@RequireRoles(ROLES.CUSTOMER)
 	async delete(@Requester() requester: RequestedBy): Promise<void> {
 		await this.customersService.delete(requester.id);

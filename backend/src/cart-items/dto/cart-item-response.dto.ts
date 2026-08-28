@@ -1,11 +1,11 @@
 import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
 import { MenuCategoryResponseDto } from 'src/menu-categories/dto/menu-category-response.dto';
 
-export class PublicMenuItemResponseDto {
+export class CartItemResponseDto {
 	categories: MenuCategoryResponseDto[];
 
 	@ApiResponseProperty({ type: 'string' })
-	description: string;
+	customerId: string;
 
 	@ApiResponseProperty({ format: 'uuid' })
 	id: string;
@@ -16,27 +16,15 @@ export class PublicMenuItemResponseDto {
 	@ApiProperty({ maximum: 999, minimum: 0, type: 'integer' })
 	inStock: number;
 
-	@ApiProperty({ default: false, type: 'boolean' })
-	isArchived: boolean;
-
-	@ApiResponseProperty({ type: 'boolean' })
-	isPreOrderOnly: boolean;
+	@ApiResponseProperty({ format: 'uuid' })
+	menuItemId: string;
 
 	@ApiResponseProperty({ type: 'string' })
 	name: string;
 
-	@ApiProperty({ minimum: 0, type: 'integer' })
-	orderCount: number;
-
-	@ApiProperty({ maximum: 1440, minimum: 0, type: 'integer' })
-	prepTime: number;
-
 	@ApiProperty({ minimum: 0.01, format: 'float', type: 'number' })
 	price: number;
 
-	@ApiProperty({ format: 'date-time', nullable: true })
-	publishedAt: Date | null;
-
-	@ApiResponseProperty({ format: 'date-time' })
-	updatedAt: Date;
+	@ApiProperty({ maximum: 999, minimum: 1, type: 'integer' })
+	quantity: number;
 }

@@ -1,14 +1,14 @@
 import { IsBoolean, IsOptional } from 'class-validator';
-import { StringToBoolean } from 'src/common/decorators/transform.decorators';
+import { QueryToBoolean } from 'src/common/decorators/transform.decorators';
 import { FindManyMenuItemsDto } from './find-many-menu-items.dto';
 
 export class FindProtectedManyMenuItemsDto extends FindManyMenuItemsDto {
-	@StringToBoolean()
+	@QueryToBoolean()
 	@IsOptional()
 	@IsBoolean()
 	isArchived?: boolean;
 
-	@StringToBoolean()
+	@QueryToBoolean()
 	@IsOptional()
 	@IsBoolean()
 	isVisible?: boolean;

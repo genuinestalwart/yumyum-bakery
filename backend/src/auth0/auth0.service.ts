@@ -1,5 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ManagementClient } from 'auth0';
+import {
+	AUTH0_CLIENT_ID,
+	AUTH0_CLIENT_SECRET,
+	AUTH0_DOMAIN,
+} from './auth0.constants';
 
 @Injectable()
 export class Auth0Service implements OnModuleInit {
@@ -7,9 +12,9 @@ export class Auth0Service implements OnModuleInit {
 
 	onModuleInit() {
 		this.management = new ManagementClient({
-			clientId: process.env.AUTH0_CLIENT_ID as string,
-			clientSecret: process.env.AUTH0_CLIENT_SECRET as string,
-			domain: process.env.AUTH0_DOMAIN as string,
+			clientId: AUTH0_CLIENT_ID,
+			clientSecret: AUTH0_CLIENT_SECRET,
+			domain: AUTH0_DOMAIN,
 		});
 	}
 

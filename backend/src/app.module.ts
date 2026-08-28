@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { Auth0Module } from './auth0/auth0.module';
+import { CartItemsModule } from './cart-items/cart-items.module';
 import { ConfigModule } from '@nestjs/config';
 import { CustomersModule } from './customers/customers.module';
 import { EmployeesModule } from './employees/employees.module';
@@ -14,6 +15,7 @@ import { UsersModule } from './users/users.module';
 @Module({
 	imports: [
 		Auth0Module,
+		CartItemsModule,
 		ConfigModule.forRoot({ isGlobal: true }),
 		CustomersModule,
 		EmployeesModule,

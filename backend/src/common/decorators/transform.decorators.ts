@@ -1,7 +1,7 @@
 import { Transform } from 'class-transformer';
-type Sanitize = (val: string) => string;
+type Sanitize = (value: string) => string;
 
-const sanitizeCategory = (value: string) =>
+const sanitizeCategoryName = (value: string) =>
 	value
 		.toLowerCase()
 		.replace(/[^a-z0-9]/g, ' ') // 1. Replace all non-alphanumeric characters with spaces
@@ -9,46 +9,40 @@ const sanitizeCategory = (value: string) =>
 		.trim()
 		.replace(/\s/g, '-'); // 3. Replace all remaining single spaces with a single hyphen
 
-const sanitizeString = (sanitize: Sanitize, value: any) =>
-	typeof value === 'string' ? sanitize(value) : value;
+const parseQueryArray = (value: unknown) => {
+	const list = Array.isArray(value) ? value : [value];
 
-export const TrimOnly = () =>
-	Transform(({ value }) => sanitizeString((val: string) => val.trim(), value));
+	if (list.every((item) => typeof item === 'string')) {
+		return list.flatMap((item) => item.split(','));
+	}
 
-export const TrimToLowerCase = () =>
-	Transform(({ value }) =>
-		sanitizeString((val: string) => val.trim().toLowerCase(), value),
-	);
+	return value;
+};
 
-export const TrimToCategory = () =>
-	Transform(({ value }) =>
-		sanitizeString((val: string) => sanitizeCategory(val), value),
-	);
-
-/**
- * Custom `class-transformer` decorator to sanitize "category" query parameters.
- *
- * @returns Array of sanitized categories if value is a string or an array of strings;
- * otherwise, returns the unchanged value.
- */
-export const QueryToCategory = () =>
+const transformString = (sanitize: Sanitize) =>
 	Transform(({ value }) => {
-		if (Array.isArray(value)) {
-			const categories = value.flatMap((cat) =>
-				typeof cat === 'string' ? cat.split(',').map(sanitizeCategory) : cat,
-			);
+		return typeof value === 'string' ? sanitize(value) : value;
+	});
 
-			return categories.filter(Boolean);
-		}
+export const BodyToCategoryName = () => transformString(sanitizeCategoryName);
+export const ToTrimmed = () => transformString((value) => value.trim());
+export const ToTrimmedLowerCase = () =>
+	transformString((value) => value.trim().toLowerCase());
+export const ToTrimmedUpperCase = () =>
+	transformString((value) => value.trim().toUpperCase());
 
-		if (typeof value === 'string') {
-			return value.split(',').map(sanitizeCategory).filter(Boolean);
+export const QueryToBoolean = () =>
+	Transform(({ value }) => {
+		return value === 'true' ? true : value === 'false' ? false : value;
+	});
+
+export const QueryToCategoryNames = () =>
+	Transform(({ value }) => {
+		const list = parseQueryArray(value);
+
+		if (Array.isArray(list) && list.every((item) => typeof item === 'string')) {
+			return list.map(sanitizeCategoryName).filter(Boolean);
 		}
 
 		return value;
 	});
-
-export const StringToBoolean = () =>
-	Transform(({ value }) =>
-		value === 'true' ? true : value === 'false' ? false : value,
-	);

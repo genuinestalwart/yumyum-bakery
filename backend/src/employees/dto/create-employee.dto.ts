@@ -1,33 +1,31 @@
 import {
 	IsEmail,
 	IsIn,
+	IsLowercase,
 	IsNotEmpty,
 	IsString,
 	MaxLength,
 } from 'class-validator';
 import {
-	TrimOnly,
-	TrimToLowerCase,
+	ToTrimmed,
+	ToTrimmedLowerCase,
 } from 'src/common/decorators/transform.decorators';
-import { ROLES } from 'src/common/types/roles.types';
-const ASSIGNABLE_ROLES = [ROLES.MANAGER, ROLES.STAFF] as const;
-type AssignableRole = (typeof ASSIGNABLE_ROLES)[number];
+import { ASSIGNABLE_ROLES, type AssignableRole } from '../employees.types';
 
 export class CreateEmployeeDto {
-	@TrimToLowerCase()
-	@IsString()
+	@ToTrimmedLowerCase()
 	@IsEmail()
+	@IsLowercase()
 	@MaxLength(255)
 	email: string;
 
-	@TrimOnly()
+	@ToTrimmed()
 	@IsString()
 	@IsNotEmpty()
 	@MaxLength(30)
 	name: string;
 
-	@TrimToLowerCase()
-	@IsString()
+	@ToTrimmedLowerCase()
 	@IsIn(ASSIGNABLE_ROLES)
 	role: AssignableRole;
 }

@@ -1,10 +1,10 @@
-import { IsEmail, IsString, MaxLength } from 'class-validator';
-import { TrimToLowerCase } from 'src/common/decorators/transform.decorators';
+import { IsEmail, IsLowercase, MaxLength } from 'class-validator';
+import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
 
 export class UpdateCustomerEmailDto {
-	@TrimToLowerCase()
-	@IsString()
+	@ToTrimmedLowerCase()
 	@IsEmail()
+	@IsLowercase()
 	@MaxLength(255)
 	email: string;
 }
