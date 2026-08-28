@@ -33,32 +33,26 @@ export class AuthGuard implements CanActivate {
 	async canActivate(ctx: ExecutionContext): Promise<boolean> {
 		const request: Request = ctx.switchToHttp().getRequest();
 		const response: Response = ctx.switchToHttp().getResponse();
+		const { method, url, ip } = request;
 
 		try {
 			await new Promise<void>((resolve, reject) => {
-				this.checkJWT(request, response, (error: any) =>
-					error ? reject(error) : resolve(),
-				);
+				const next = (error: any) => (error ? reject(error) : resolve());
+				this.checkJWT(request, response, next);
 			});
 		} catch (error) {
-			this.logger.warn(
-				'JWT Validation Failed',
-				error instanceof Error ? error.stack : undefined,
-			);
-
+			const stack = error instanceof Error ? error.stack : undefined;
+			this.logger.warn('JWT Validation Failed', stack);
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
 		const payload = request.auth?.payload;
 		const key = `${AUTH0_IDENTIFIER}/roles`;
 		const rolesInToken = payload?.[key] as string[] | undefined;
-		const id = payload?.sub as string | undefined;
+		const id = payload?.sub;
 
 		if (!id || !rolesInToken || rolesInToken.length === 0) {
-			this.logger.warn(
-				`Requester Missing | ${request.method} ${request.url} | IP: ${request.ip}`,
-			);
-
+			this.logger.warn(`Requester Missing | ${method} ${url} | IP: ${ip}`);
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 

@@ -72,10 +72,6 @@ export class UsersService {
 		return serializePublicUser(user);
 	}
 
-	/**
-	 * @throws {ConflictException} If the user is a deactivated employee.
-	 * @throws {ForbiddenException} If the user is a banned CUSTOMER.
-	 */
 	async updateProfile(
 		dto: UpdateUserProfileDto,
 		requester: RequestedBy,

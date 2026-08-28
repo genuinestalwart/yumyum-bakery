@@ -51,13 +51,11 @@ export class EmployeesService {
 			verify_email: false,
 		});
 
-		const id = employee.user_id as string;
+		const id = employee.user_id!;
 
 		try {
-			await this.auth0Service.users.roles.assign(id, {
-				roles: [AUTH0_ROLE_IDS[dto.role]],
-			});
-
+			const roles = [AUTH0_ROLE_IDS[dto.role]];
+			await this.auth0Service.users.roles.assign(id, { roles });
 			this.logger.log(`Employee created successfully | ID: ${id}`);
 			return serializeProtectedUser(employee);
 		} catch (error) {
@@ -67,9 +65,6 @@ export class EmployeesService {
 	}
 
 	/**
-	 * Updates the role of an existing MANAGER or STAFF.
-	 *
-	 * @throws {NotFoundException} If the employee's role is not MANAGER or STAFF.
 	 * @throws {ConflictException} If the employee is deactivated.
 	 */
 	async updateRole(
@@ -150,9 +145,6 @@ export class EmployeesService {
 	}
 
 	/**
-	 * Deactivates or reactivates a MANAGER or STAFF by updating their 'blocked' status.
-	 *
-	 * @throws {NotFoundException} If the user is not a MANAGER or STAFF.
 	 * @throws {ForbiddenException} If the requester does not have a higher role
 	 * than the employee being created.
 	 */

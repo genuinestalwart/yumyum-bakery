@@ -75,13 +75,5 @@
 		],
 		"coverageDirectory": "../coverage",
 		"testEnvironment": "node"
-	},
-	"allowScripts": {
-		"@nestjs/core@11.1.24": true,
-		"@prisma/engines@7.8.0": true,
-		"@scarf/scarf@1.4.0": true,
-		"esbuild@0.28.0": true,
-		"prisma@7.8.0": true,
-		"unrs-resolver@1.12.2": true
 	}
 }

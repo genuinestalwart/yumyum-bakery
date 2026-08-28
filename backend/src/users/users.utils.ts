@@ -10,31 +10,28 @@ const extractRoleFromAppMetadata = (user: Auth0.UserResponseSchema) => {
 const serializeIdentities = (identities: Auth0.UserIdentity[]) => {
 	return identities.map((identity) => ({
 		id: identity.user_id as string,
-		isSocial: identity.isSocial as boolean,
-		provider: identity.provider as string,
+		isSocial: identity.isSocial!,
+		provider: identity.provider,
 	}));
 };
 
 export const serializeProtectedUser = (user: Auth0.UserResponseSchema) => {
 	return {
-		blocked: user.blocked as boolean,
-		createdAt: user.created_at as string,
-		email: user.email as string,
-		emailVerified: user.email_verified as boolean,
-		id: user.user_id as string,
+		blocked: user.blocked!,
+		createdAt: user.created_at!,
+		email: user.email!,
+		emailVerified: user.email_verified!,
+		id: user.user_id!,
 		identities: serializeIdentities(user.identities as Auth0.UserIdentity[]),
-		name: user.name as string,
-		picture: user.picture as string,
+		name: user.name!,
+		picture: user.picture!,
 		role: extractRoleFromAppMetadata(user),
-		updatedAt: user.updated_at as string,
+		updatedAt: user.updated_at!,
 	};
 };
 
 export const serializePublicUser = (user: Auth0.UserResponseSchema) => {
-	return {
-		id: user.user_id as string,
-		name: user.name as string,
-		picture: user.picture as string,
-		role: extractRoleFromAppMetadata(user),
-	};
+	const { user_id, name, picture } = user;
+	const role = extractRoleFromAppMetadata(user);
+	return { id: user_id!, name: name!, picture: picture!, role };
 };

@@ -41,17 +41,16 @@ export class MenuItemsService {
 	async findProtectedMany(
 		dto: FindProtectedManyMenuItemsDto,
 	): Promise<ProtectedMenuItemResponseDto[]> {
-		const where: Prisma.MenuItemWhereInput = this.getMenuItemsWhere(dto);
-		where.isVisible = dto.isVisible !== undefined ? dto.isVisible : undefined;
-
-		if (dto.isArchived !== undefined) {
-			where.archivedAt = dto.isArchived ? { not: null } : null;
-		}
+		const { isArchived, isVisible, ...rest } = dto;
 
 		const menuItems = await this.prismaService.menuItem.findMany({
 			include,
 			orderBy: { name: 'asc' },
-			where,
+			where: {
+				...this.getMenuItemsWhere(rest),
+				archivedAt: this.toConditionalValue(isArchived, { not: null }, null),
+				isVisible,
+			},
 		});
 
 		return menuItems.map((item) => this.serializeProtectedMenuItem(item));
@@ -122,17 +121,14 @@ export class MenuItemsService {
 			where: { id },
 		});
 
-		const data: Prisma.MenuItemUpdateInput = { isVisible: !menuItem.isVisible };
-		data.publishedAt = !menuItem.publishedAt ? new Date() : undefined;
+		const data = {
+			isVisible: !menuItem.isVisible,
+			publishedAt: !menuItem.publishedAt ? new Date() : undefined,
+		} satisfies Prisma.MenuItemUpdateInput;
+
 		return await this.updateAndSerialize(data, id);
 	}
 
-	/**
-	 * Archives a published menuItem and freezes or deletes its related data.
-	 *
-	 * @throws {NotFoundException} If the menuItem doesn't exist.
-	 * @throws {ConflictException} If the menuItem was never published or is already archived.
-	 */
 	async archive(id: string): Promise<ProtectedMenuItemResponseDto> {
 		const { isArchived, isPublished } = await this.getMenuItemStatus(id);
 
@@ -168,6 +164,14 @@ export class MenuItemsService {
 		await this.prismaService.menuItem.delete({ where: { id } });
 	}
 
+	private toConditionalValue<TTrue, TFalse>(
+		value: boolean | undefined,
+		whenTrue: TTrue,
+		whenFalse: TFalse,
+	): TTrue | TFalse | undefined {
+		return value === undefined ? undefined : value ? whenTrue : whenFalse;
+	}
+
 	private serializeProtectedMenuItem(
 		menuItem: Prisma.MenuItemGetPayload<{ include: typeof include }>,
 	): ProtectedMenuItemResponseDto {
@@ -191,54 +195,41 @@ export class MenuItemsService {
 		};
 	}
 
-	private sanitizeMenuItem(
-		dto: Partial<CreateMenuItemDto>,
-	): Prisma.MenuItemUpdateInput {
+	private sanitizeMenuItem(dto: Partial<CreateMenuItemDto>) {
 		const { categories, ...rest } = dto;
-		const data: Prisma.MenuItemUpdateInput = { ...rest };
 
-		if (categories) {
-			data.menuCategories = { set: categories.map((id) => ({ id })) };
-		}
-
-		return data;
+		return {
+			...rest,
+			...(categories && {
+				menuCategories: { set: categories.map((id) => ({ id })) },
+			}),
+		} satisfies Prisma.MenuItemUpdateInput;
 	}
 
-	private getMenuItemsWhere(
-		dto: FindManyMenuItemsDto,
-	): Prisma.MenuItemWhereInput {
-		const where: Prisma.MenuItemWhereInput = {};
-		const menuCategories = { some: { name: { in: dto.categories } } };
-		where.menuCategories = dto.categories ? menuCategories : undefined;
-		where.isPreOrderOnly = dto.isPreOrderOnly;
-
-		if (dto.isInStock !== undefined) {
-			where.inStock = dto.isInStock ? { not: 0 } : 0;
-		}
-
-		if (dto.search) {
-			where.OR = [
-				{ description: { contains: dto.search, mode: 'insensitive' } },
-				{ name: { contains: dto.search, mode: 'insensitive' } },
-			];
-		}
-
-		return where;
+	private getMenuItemsWhere(dto: FindManyMenuItemsDto) {
+		return {
+			...(dto.categories && {
+				menuCategories: { some: { name: { in: dto.categories } } },
+			}),
+			...(dto.search && {
+				OR: [
+					{ description: { contains: dto.search, mode: 'insensitive' } },
+					{ name: { contains: dto.search, mode: 'insensitive' } },
+				],
+			}),
+			inStock: this.toConditionalValue(dto.isInStock, { not: 0 }, 0),
+			isPreOrderOnly: dto.isPreOrderOnly,
+		} satisfies Prisma.MenuItemWhereInput;
 	}
 
-	private async getMenuItemStatus(id: string): Promise<{
-		isArchived: boolean;
-		isPublished: boolean;
-	}> {
+	private async getMenuItemStatus(id: string) {
 		const menuItem = await this.prismaService.menuItem.findUniqueOrThrow({
 			select: { archivedAt: true, publishedAt: true },
 			where: { id },
 		});
 
-		return {
-			isArchived: !!menuItem.archivedAt,
-			isPublished: !!menuItem.publishedAt,
-		};
+		const { archivedAt, publishedAt } = menuItem;
+		return { isArchived: !!archivedAt, isPublished: !!publishedAt };
 	}
 
 	private async updateAndSerialize(

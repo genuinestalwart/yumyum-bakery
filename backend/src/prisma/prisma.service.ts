@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from 'prisma/generated/client';
 import { Injectable, OnModuleInit } from '@nestjs/common';
-const connectionString = process.env.DATABASE_URL as string;
+const connectionString = process.env.DATABASE_URL!;
 const adapter = new PrismaPg({ connectionString });
 
 @Injectable()

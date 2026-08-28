@@ -24,5 +24,12 @@
 		"prettier": "^3.9.6",
 		"prettier-plugin-prisma": "^5.0.0",
 		"turbo": "^2.10.12"
+	},
+	"allowScripts": {
+		"@prisma/engines@7.10.0": true,
+		"prisma@7.10.0": true,
+		"@scarf/scarf": true,
+		"unrs-resolver": true,
+		"esbuild": true
 	}
 }

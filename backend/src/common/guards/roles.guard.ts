@@ -34,19 +34,17 @@ export class RolesGuard implements CanActivate {
 		]);
 
 		const request: Request = ctx.switchToHttp().getRequest();
+		const { method, url, ip } = request;
 		const user = request.user;
 
 		if (!user) {
-			this.logger.warn(
-				`Requester Not Found | ${request.method} ${request.url} | IP: ${request.ip}`,
-			);
-
+			this.logger.warn(`Requester Not Found | ${method} ${url} | IP: ${ip}`);
 			throw new UnauthorizedException(ERROR_MESSAGES.UNAUTHORIZED);
 		}
 
 		if (!requiredRoles.includes(user.role)) {
 			this.logger.warn(
-				`Missing Required Roles | ${request.method} ${request.url} | IP: ${request.ip} | Requester: ${JSON.stringify(user)} | Required roles: ${requiredRoles.join(', ')}`,
+				`Missing Required Roles | ${method} ${url} | IP: ${ip} | Requester: ${JSON.stringify(user)} | Roles Required: ${requiredRoles.join(', ')}`,
 			);
 
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);

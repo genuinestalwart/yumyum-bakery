@@ -25,6 +25,17 @@ export class CustomersService {
 
 	private readonly logger = createLogger(CustomersService.name);
 
+	private readonly orderStatus = {
+		notIn: [
+			'CANCELLED',
+			'COMPLETED',
+			'DELIVERED',
+			'FAILED',
+			'PICKED_UP',
+			'REJECTED',
+		],
+	} satisfies Prisma.EnumOrderStatusFilter;
+
 	/**
 	 * @throws {ForbiddenException} If the CUSTOMER is banned.
 	 */
@@ -49,25 +60,22 @@ export class CustomersService {
 	}
 
 	async ban(id: string): Promise<ProtectedUserResponseDto> {
-		return this.setBanStatus(true, id);
+		return this.setBlockStatus(true, id);
 	}
 
 	async unban(id: string): Promise<ProtectedUserResponseDto> {
-		return this.setBanStatus(false, id);
+		return this.setBlockStatus(false, id);
 	}
 
 	/**
-	 * Deletes the CUSTOMER and the relevant data.
-	 *
 	 * @throws {ForbiddenException} If the CUSTOMER is banned.
-	 * @throws {ConflictException} If the CUSTOMER has any ongoing orders.
 	 */
 	async delete(id: string): Promise<void> {
 		const { blocked } = await this.usersService.findProtectedOne(id);
 		this.usersService.ensureNotBlocked(blocked, ROLES.CUSTOMER);
 
 		const ongoingOrders = await this.prismaService.order.count({
-			where: this.getOngoingOrdersWhere(id),
+			where: { customerId: id, orderStatus: this.orderStatus },
 		});
 
 		if (ongoingOrders > 0) {
@@ -89,36 +97,16 @@ export class CustomersService {
 		this.logger.log(`CUSTOMER deleted successfully | ID: ${id}`);
 	}
 
-	private getOngoingOrdersWhere(customerId: string): Prisma.OrderWhereInput {
-		const orderStatus: Prisma.EnumOrderStatusFilter = {
-			notIn: [
-				'CANCELLED',
-				'COMPLETED',
-				'DELIVERED',
-				'FAILED',
-				'PICKED_UP',
-				'REJECTED',
-			],
-		};
-
-		return { customerId, orderStatus };
-	}
-
 	private async purgeAccountData(
-		id: string,
+		customerId: string,
 		tx: Prisma.TransactionClient,
 	): Promise<void> {
-		await tx.cartItem.deleteMany({ where: { customerId: id } });
-		await tx.review.deleteMany({ where: { customerId: id } });
-		await tx.subscription.deleteMany({ where: { customerId: id } });
+		await tx.cartItem.deleteMany({ where: { customerId } });
+		await tx.review.deleteMany({ where: { customerId } });
+		await tx.subscription.deleteMany({ where: { customerId } });
 	}
 
-	/**
-	 * Bans or unbans a CUSTOMER by updating their 'blocked' status.
-	 *
-	 * @throws {NotFoundException} If the user is not a CUSTOMER.
-	 */
-	private async setBanStatus(
+	private async setBlockStatus(
 		blocked: boolean,
 		id: string,
 	): Promise<ProtectedUserResponseDto> {
@@ -138,7 +126,7 @@ export class CustomersService {
 
 				await tx.order.updateMany({
 					data: { orderStatus: 'CANCELLED' },
-					where: this.getOngoingOrdersWhere(id),
+					where: { customerId: id, orderStatus: this.orderStatus },
 				});
 
 				return await this.auth0Service.users.update(id, { blocked });
