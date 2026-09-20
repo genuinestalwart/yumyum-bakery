@@ -20,7 +20,7 @@ const bootstrap = async () => {
 	const config = new DocumentBuilder()
 		.addBearerAuth()
 		.setTitle('YumYum Bakery APIs')
-		.setVersion('0.4.0')
+		.setVersion('0.4.1')
 		.build();
 
 	const documentOptions: SwaggerDocumentOptions = {
