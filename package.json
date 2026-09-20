@@ -1,6 +1,6 @@
 {
 	"name": "yumyum-bakery",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"description": "",
 	"author": "",
 	"private": true,
@@ -15,21 +15,21 @@
 		"start": "turbo run start",
 		"start:dev": "turbo run start:dev",
 		"prod": "turbo run prod",
-		"postinstall": "turbo run postinstall",
 		"format": "prettier \"**/*.{ts,js,vue,json,prisma,md}\" --write"
 	},
 	"devDependencies": {
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-prettier": "^5.5.6",
-		"prettier": "^3.9.6",
+		"prettier": "^3.9.8",
 		"prettier-plugin-prisma": "^5.0.0",
-		"turbo": "^2.10.12"
+		"turbo": "^2.11.2"
 	},
 	"allowScripts": {
 		"@prisma/engines@7.10.0": true,
 		"prisma@7.10.0": true,
 		"@scarf/scarf": true,
 		"unrs-resolver": true,
-		"esbuild": true
+		"esbuild": true,
+		"@parcel/watcher@2.6.0": true
 	}
 }
