@@ -31,8 +31,8 @@ export class PublicMenuItemResponseDto {
 	@ApiProperty({ maximum: 1440, minimum: 0, type: 'integer' })
 	prepTime: number;
 
-	@ApiProperty({ minimum: 0.01, format: 'float', type: 'number' })
-	price: number;
+	@ApiResponseProperty({ type: 'string' })
+	price: string;
 
 	@ApiProperty({ format: 'date-time', nullable: true })
 	publishedAt: Date | null;

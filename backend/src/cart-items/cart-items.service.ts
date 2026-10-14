@@ -89,6 +89,6 @@ export class CartItemsService {
 		const { menuItem, ...cartItemRest } = cartItem;
 		const { menuCategories: categories, price, ...menuItemRest } = menuItem;
 		const rest = { ...cartItemRest, ...menuItemRest };
-		return { ...rest, categories, price: price.toNumber() };
+		return { ...rest, categories, price: price.toFixed(2) };
 	}
 }

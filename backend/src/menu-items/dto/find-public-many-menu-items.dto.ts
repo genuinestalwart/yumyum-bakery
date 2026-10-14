@@ -1,9 +1,22 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsNumber, IsOptional, Max, Min } from 'class-validator';
+import {
+	IsIn,
+	IsInt,
+	IsNotEmpty,
+	IsOptional,
+	IsString,
+	Matches,
+	Max,
+	Min,
+} from 'class-validator';
 import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import { SORT_BY, type SortBy } from '../menu-items.types';
 import { FindManyMenuItemsDto } from './find-many-menu-items.dto';
+import {
+	REGEX_MAX_PRICE,
+	REGEX_MIN_PRICE,
+} from 'src/common/constants/regex.constants';
 
 export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 	@Type(() => Number)
@@ -13,11 +26,11 @@ export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 	@Min(10)
 	maxPrepTime?: number;
 
-	@Type(() => Number)
 	@IsOptional()
-	@IsNumber({ maxDecimalPlaces: 2 })
-	@Min(1.0)
-	maxPrice?: number;
+	@IsString()
+	@IsNotEmpty()
+	@Matches(REGEX_MAX_PRICE)
+	maxPrice?: string;
 
 	@Type(() => Number)
 	@IsOptional()
@@ -26,11 +39,11 @@ export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 	@Min(5)
 	minPrepTime?: number;
 
-	@Type(() => Number)
 	@IsOptional()
-	@IsNumber({ maxDecimalPlaces: 2 })
-	@Min(0.01)
-	minPrice?: number;
+	@IsString()
+	@IsNotEmpty()
+	@Matches(REGEX_MIN_PRICE)
+	minPrice?: string;
 
 	@ToTrimmedLowerCase()
 	@IsOptional()

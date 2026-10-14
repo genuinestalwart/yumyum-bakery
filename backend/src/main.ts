@@ -4,7 +4,6 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import {
 	DocumentBuilder,
-	type SwaggerCustomOptions,
 	type SwaggerDocumentOptions,
 	SwaggerModule,
 } from '@nestjs/swagger';
@@ -20,20 +19,23 @@ const bootstrap = async () => {
 	const config = new DocumentBuilder()
 		.addBearerAuth()
 		.setTitle('YumYum Bakery APIs')
-		.setVersion('0.4.1')
+		.setVersion('v0.4.1')
 		.build();
 
-	const documentOptions: SwaggerDocumentOptions = {
-		operationIdFactory: (controllerName: string, methodName: string) =>
-			methodName, // .../ControllerName/MethodName
+	// .../ControllerName/MethodName
+	const options: SwaggerDocumentOptions = {
+		operationIdFactory: (controller: string, method: string) => method,
 	};
 
-	const documentFactory = () =>
-		SwaggerModule.createDocument(app, config, documentOptions);
-
+	const document = () => SwaggerModule.createDocument(app, config, options);
 	const isDev = process.env.NODE_ENV === 'development';
-	const customOptions: SwaggerCustomOptions = { ui: isDev, raw: isDev };
-	SwaggerModule.setup('api', app, documentFactory, customOptions);
+
+	SwaggerModule.setup('api', app, document, {
+		raw: isDev,
+		swaggerOptions: { tagsSorter: 'alpha' },
+		ui: isDev,
+	});
+
 	await app.listen(process.env.PORT ?? 5000);
 };
 

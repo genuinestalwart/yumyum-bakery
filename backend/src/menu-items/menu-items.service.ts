@@ -59,9 +59,10 @@ export class MenuItemsService {
 	async findPublicMany(
 		dto: FindPublicManyMenuItemsDto,
 	): Promise<PublicMenuItemResponseDto[]> {
-		const { maxPrepTime, maxPrice, minPrepTime, minPrice } = dto;
+		const { maxPrepTime, minPrepTime } = dto;
 		const prepTimeRange = { gte: minPrepTime, lte: maxPrepTime };
-		const priceRange = { gte: minPrice, lte: maxPrice };
+		const gte = dto.minPrice ? new Prisma.Decimal(dto.minPrice) : undefined;
+		const lte = dto.maxPrice ? new Prisma.Decimal(dto.maxPrice) : undefined;
 		const defaultSortBy = dto.sortBy ?? SORT_BY.POPULARITY;
 		const defaultSortOrder = dto.sortOrder ?? SORT_ORDER.DESC;
 
@@ -74,7 +75,7 @@ export class MenuItemsService {
 				archivedAt: null,
 				isVisible: true,
 				prepTime: maxPrepTime || minPrepTime ? prepTimeRange : undefined,
-				price: maxPrice || minPrice ? priceRange : undefined,
+				price: gte || lte ? { gte, lte } : undefined,
 				publishedAt: { not: null },
 			},
 		});
@@ -176,7 +177,7 @@ export class MenuItemsService {
 		menuItem: Prisma.MenuItemGetPayload<{ include: typeof include }>,
 	): ProtectedMenuItemResponseDto {
 		const { menuCategories: categories, price, ...rest } = menuItem;
-		return { ...rest, categories, price: price.toNumber() };
+		return { ...rest, categories, price: price.toFixed(2) };
 	}
 
 	private serializePublicMenuItem(
@@ -191,15 +192,16 @@ export class MenuItemsService {
 			...rest,
 			categories,
 			isArchived: !!archivedAt,
-			price: price.toNumber(),
+			price: price.toFixed(2),
 		};
 	}
 
 	private sanitizeMenuItem(dto: Partial<CreateMenuItemDto>) {
-		const { categories, ...rest } = dto;
+		const { categories, price, ...rest } = dto;
 
 		return {
 			...rest,
+			price: price ? new Prisma.Decimal(price) : undefined,
 			...(categories && {
 				menuCategories: { set: categories.map((id) => ({ id })) },
 			}),

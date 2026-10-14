@@ -77,10 +77,9 @@ model Order {
   amount     Decimal   @db.Decimal(10, 2)
   createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp()
   customerId String?   @map("customer_id") @db.VarChar(250) // will be set to null if customer deletes their account
-  riderId    String    @map("rider_id") @db.VarChar(250)
   orderType  OrderType @map("order_type")
 
-  // If the type is PICKUP, the following fields will remain null
+  // If the orderType is PICKUP or WALK_IN, the following fields will remain null
   deliveryStreet     String? @map("delivery_street") @db.VarChar(250)
   deliveryCity       String? @map("delivery_city") @db.VarChar(100)
   deliveryPostalCode String? @map("delivery_postal_code") @db.VarChar(20)
@@ -91,7 +90,8 @@ model Order {
   orderComment     String?       @map("order_comment") @db.VarChar(500) // can't modify after 7 days of order DELIVERED
   orderRating      Int?          @map("order_rating") @db.Integer // can't modify after 7 days of order DELIVERED
   orderStatus      OrderStatus   @map("order_status")
-  paymentStatus    PaymentStatus @map("payment_status")
+  riderId          String?       @map("rider_id") @db.VarChar(250) // initially null, will be set when a rider is assigned to the order
+  paymentStatus    PaymentStatus @default(UNPAID) @map("payment_status")
   updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamp()
   verificationCode String?       @map("verification_code") @db.VarChar(6) // automatically updated
 
@@ -216,33 +216,32 @@ model SubscriptionItem {
 }
 
 enum OrderType {
-  DELIVERY     @map("delivery")
-  PICKUP       @map("pickup")
-  WALK_IN      @map("walk_in")
-  SUBSCRIPTION @map("subscription")
+  DELIVERY     @map("delivery") // will be delivered to the customer by a rider
+  PICKUP       @map("pickup") // will be picked up by the customer
+  WALK_IN      @map("walk_in") // will be handled by the staff, no rider or delivery address needed
+  SUBSCRIPTION @map("subscription") // same as DELIVERY, but will be ordered automatically on a routine basis
 }
 
 enum OrderStatus {
   // Will be set by customer
-  PENDING   @map("pending") // 1st
-  CANCELLED @map("cancelled") // Can't be set to CANCELLED once the status is PREPARING or later | final status
+  PENDING @map("pending") // 1st if DELIVERY or PICKUP type
 
-  // Will be set by restaurant
-  COMPLETED  @map("completed") // 1st if WALK_IN type | final status
+  // Will be set by bakery
+  ACCEPTED   @map("accepted") // 1st if WALK_IN or SUBSCRIPTION type, otherwise 2nd
   REJECTED   @map("rejected") // 2nd | final status
-  ACCEPTED   @map("accepted") // 2nd
+  COMPLETED  @map("completed") // 3rd if WALK_IN type | final status
   PREPARING  @map("preparing") // 3rd
   READY      @map("ready") // 4th
   PICKED_UP  @map("picked_up") // 5th if PICKUP type | final status
-  IN_TRANSIT @map("in_transit") // 5th if DELIVERY type
-  DELIVERED  @map("delivered") // 6th if DELIVERY type | final status
+  IN_TRANSIT @map("in_transit") // 5th if DELIVERY or SUBSCRIPTION type
+  DELIVERED  @map("delivered") // 6th if DELIVERY or SUBSCRIPTION type | final status
 
   // Special case scenario
-  FAILED @map("failed") // Final status
+  CANCELLED @map("cancelled") // Can be set only during PENDING and ACCEPTED | final status
+  FAILED    @map("failed") // Final status
 }
 
 enum PaymentStatus {
-  FULLY_PAID     @map("fully_paid")
-  PARTIALLY_PAID @map("partially_paid")
-  UNPAID         @map("unpaid")
+  PAID   @map("paid")
+  UNPAID @map("unpaid")
 }
