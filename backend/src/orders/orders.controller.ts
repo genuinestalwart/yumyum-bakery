@@ -5,7 +5,6 @@ import {
 	Body,
 	Patch,
 	Param,
-	Delete,
 	BadRequestException,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
@@ -18,12 +17,22 @@ import {
 	type RequestedBy,
 } from 'src/common/types/roles.types';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
-import { OrderType } from 'prisma/generated/enums';
+import { OrderStatus, OrderType } from 'prisma/generated/enums';
 import { ApiGlobalErrors } from 'src/common/decorators/swagger.decorators';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequireAuth } from 'src/common/decorators/require-auth.decorator';
-import { ApiCreateOrderResource } from './orders.decorators';
+import {
+	ApiAcceptOrderResource,
+	ApiCancelOrderResource,
+	ApiCreateOrderResource,
+	ApiFailOrderResource,
+	ApiFinishOrderResource,
+	ApiRejectOrderResource,
+	ApiUpdateOrderStatusResource,
+} from './orders.decorators';
 import { OrderResponseUnion } from './orders.types';
+import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
 
 @ApiGlobalErrors()
 @ApiTags('Orders')
@@ -53,23 +62,54 @@ export class OrdersController {
 		return this.ordersService.create(requester.id, body);
 	}
 
-	@Get()
-	findAll() {
-		return this.ordersService.findAll();
+	@ApiAcceptOrderResource()
+	@ApiOperation({ summary: 'Accept an order' })
+	@Patch(':id/accept')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
+	async accept(@Param('id') id: string): Promise<OrderResponseUnion> {
+		return this.ordersService.updateStatus(OrderStatus.ACCEPTED, id);
 	}
 
-	@Get(':id')
-	findOne(@Param('id') id: string) {
-		return this.ordersService.findOne(+id);
+	@ApiRejectOrderResource()
+	@ApiOperation({ summary: 'Reject an order' })
+	@Patch(':id/reject')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
+	async reject(@Param('id') id: string): Promise<OrderResponseUnion> {
+		return this.ordersService.updateStatus(OrderStatus.REJECTED, id);
 	}
 
-	@Patch(':id')
-	update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-		return this.ordersService.update(+id, updateOrderDto);
+	@ApiCancelOrderResource()
+	@ApiOperation({ summary: 'Cancel an order' })
+	@Patch(':id/cancel')
+	@RequireRoles(ROLES.CUSTOMER)
+	async cancel(@Param('id') id: string): Promise<OrderResponseUnion> {
+		return this.ordersService.updateStatus(OrderStatus.CANCELLED, id);
 	}
 
-	@Delete(':id')
-	remove(@Param('id') id: string) {
-		return this.ordersService.remove(+id);
+	@ApiFinishOrderResource()
+	@ApiOperation({ summary: 'Mark an order as finished' })
+	@Patch(':id/finish')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
+	async finish(@Param('id') id: string): Promise<OrderResponseUnion> {
+		return this.ordersService.updateStatus('FINISHED', id);
+	}
+
+	@ApiFailOrderResource()
+	@ApiOperation({ summary: 'Mark an order as failed' })
+	@Patch(':id/fail')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
+	async fail(@Param('id') id: string): Promise<OrderResponseUnion> {
+		return this.ordersService.updateStatus(OrderStatus.FAILED, id);
+	}
+
+	@ApiUpdateOrderStatusResource()
+	@ApiOperation({ summary: 'Update the status of an order' })
+	@Patch(':id/update-status')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
+	async updateStatus(
+		@Body() body: UpdateOrderStatusDto,
+		@Param('id') id: string,
+	): Promise<OrderResponseUnion> {
+		return this.ordersService.updateStatus(body.orderStatus, id);
 	}
 }

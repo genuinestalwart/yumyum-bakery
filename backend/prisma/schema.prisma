@@ -235,10 +235,10 @@ enum OrderStatus {
   PICKED_UP  @map("picked_up") // 5th if PICKUP type | final status
   IN_TRANSIT @map("in_transit") // 5th if DELIVERY or SUBSCRIPTION type
   DELIVERED  @map("delivered") // 6th if DELIVERY or SUBSCRIPTION type | final status
+  FAILED     @map("failed") // 6th if DELIVERY or SUBSCRIPTION type | Final status
 
   // Special case scenario
   CANCELLED @map("cancelled") // Can be set only during PENDING and ACCEPTED | final status
-  FAILED    @map("failed") // Final status
 }
 
 enum PaymentStatus {

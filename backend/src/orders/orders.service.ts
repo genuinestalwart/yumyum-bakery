@@ -5,7 +5,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderStatus, OrderType } from 'prisma/generated/enums';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { Prisma } from 'prisma/generated/client';
-import { OrderResponseUnion, ProxyCartItem } from './orders.types';
+import {
+	AllowedOrderStatus,
+	OrderResponseUnion,
+	ProxyCartItem,
+} from './orders.types';
+import { OrdersStatusesService } from './order-statuses.service';
 
 const include = {
 	orderedItems: { omit: { orderId: true } },
@@ -13,7 +18,10 @@ const include = {
 
 @Injectable()
 export class OrdersService {
-	constructor(private readonly prismaService: PrismaService) {}
+	constructor(
+		private readonly orderStatusesService: OrdersStatusesService,
+		private readonly prismaService: PrismaService,
+	) {}
 
 	/**
 	 * @throws {BadRequestException} If any of the required fields is missing
@@ -24,10 +32,11 @@ export class OrdersService {
 		dto: CreateOrderDto,
 	): Promise<OrderResponseUnion> {
 		const { orderedItems, orderType, subscriptionId, ...location } = dto;
+		const needsRider = this.orderStatusesService.needsRider(orderType);
 
 		if (
 			(orderType === OrderType.SUBSCRIPTION && !subscriptionId) ||
-			(this.needsLocation(orderType) && Object.keys(location).length < 5)
+			(needsRider && Object.keys(location).length < 5)
 		) {
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
@@ -52,7 +61,7 @@ export class OrdersService {
 					new Prisma.Decimal(0),
 				),
 				customerId: orderType === OrderType.WALK_IN ? undefined : customerId,
-				...(this.needsLocation(orderType) && location),
+				...(needsRider && location),
 				orderedItems: { create: sanitizedOrderedItems },
 				orderType,
 				orderStatus: initialStatuses[orderType],
@@ -60,77 +69,14 @@ export class OrdersService {
 			include,
 		});
 
-		return this.serializeOrder(order);
+		return this.orderStatusesService.serializeOrder(order);
 	}
 
-	findAll() {
-		return `This action returns all orders`;
-	}
-
-	findOne(id: number) {
-		return `This action returns a #${id} order`;
-	}
-
-	update(id: number, updateOrderDto: UpdateOrderDto) {
-		return `This action updates a #${id} order`;
-	}
-
-	remove(id: number) {
-		return `This action removes a #${id} order`;
-	}
-
-	private needsLocation(orderType: OrderType): boolean {
-		const { DELIVERY, SUBSCRIPTION } = OrderType;
-		return orderType === DELIVERY || orderType === SUBSCRIPTION;
-	}
-
-	private serializeLocation(
-		order: Prisma.OrderGetPayload<{ include: typeof include }>,
-	) {
-		const {
-			deliveryCity,
-			deliveryLatitude,
-			deliveryLongitude,
-			deliveryPostalCode,
-			deliveryStreet,
-			orderType,
-		} = order;
-		return this.needsLocation(orderType)
-			? {
-					deliveryCity: deliveryCity!,
-					deliveryLatitude: deliveryLatitude!,
-					deliveryLongitude: deliveryLongitude!,
-					deliveryPostalCode: deliveryPostalCode!,
-					deliveryStreet: deliveryStreet!,
-				}
-			: {};
-	}
-
-	private serializeOrder(
-		order: Prisma.OrderGetPayload<{ include: typeof include }>,
-	): OrderResponseUnion {
-		const isWalkIn = order.orderType === OrderType.WALK_IN;
-		const isSubscription = order.orderType === OrderType.SUBSCRIPTION;
-
-		return {
-			amount: order.amount.toFixed(2),
-			createdAt: order.createdAt,
-			customerId: !isWalkIn ? order.customerId : undefined,
-			...this.serializeLocation(order),
-			id: order.id,
-			orderComment: order.orderComment,
-			orderedItems: order.orderedItems.map(({ price, ...rest }) => {
-				return { price: price.toFixed(2), ...rest };
-			}),
-			orderRating: order.orderRating,
-			orderStatus: order.orderStatus,
-			orderType: order.orderType,
-			paymentStatus: order.paymentStatus,
-			riderId: this.needsLocation(order.orderType) ? order.riderId : undefined,
-			subscriptionId: isSubscription ? order.subscriptionId! : undefined,
-			updatedAt: order.updatedAt,
-			verificationCode: !isWalkIn ? order.verificationCode : undefined,
-		};
+	async updateStatus(
+		action: 'FINISHED' | AllowedOrderStatus,
+		id: string,
+	): Promise<OrderResponseUnion> {
+		return this.orderStatusesService.updateStatus(action, id);
 	}
 
 	/**
