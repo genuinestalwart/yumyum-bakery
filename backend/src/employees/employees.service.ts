@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import {
 	ConflictException,
 	ForbiddenException,
@@ -19,6 +18,7 @@ import { UsersService } from 'src/users/users.service';
 import { serializeProtectedUser } from 'src/users/users.utils';
 import { ProtectedUserResponseDto } from 'src/users/dto/protected-user-response.dto';
 import { createLogger } from 'src/common/utils/logger.util';
+import { checkIfHigherRole, generatePassword } from './employees.utils';
 
 @Injectable()
 export class EmployeesService {
@@ -47,7 +47,7 @@ export class EmployeesService {
 			email: dto.email,
 			email_verified: false,
 			name: dto.name,
-			password: this.generatePassword(),
+			password: generatePassword(),
 			verify_email: false,
 		});
 
@@ -121,27 +121,10 @@ export class EmployeesService {
 	}
 
 	private ensureHigherRole(requesterRole: Role, targetRole: Role): void {
-		const hierarchy = [
-			ROLES.CUSTOMER,
-			ROLES.STAFF,
-			ROLES.MANAGER,
-			ROLES.ADMIN,
-		] as const;
-
-		if (hierarchy.indexOf(requesterRole) <= hierarchy.indexOf(targetRole)) {
+		if (!checkIfHigherRole(requesterRole, targetRole)) {
 			this.logger.warn(`${requesterRole} can't modify ${targetRole}`);
 			throw new ForbiddenException(ERROR_MESSAGES.FORBIDDEN);
 		}
-	}
-
-	private generatePassword(length = 12): string {
-		const password = crypto
-			.randomBytes(length)
-			.toString('base64')
-			.replace(/[^a-zA-Z0-9]/g, '')
-			.slice(0, length);
-
-		return `${password}!1Aa`;
 	}
 
 	/**

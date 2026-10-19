@@ -1,11 +1,10 @@
-import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiResponseProperty, OmitType } from '@nestjs/swagger';
 import { OrderType } from 'prisma/generated/enums';
-import { OrderResponseDto } from './order-response.dto';
+import { PickupOrderResponseDto } from './pickup-order-response.dto';
 
-export class DeliveryOrderResponseDto extends OrderResponseDto {
-	@ApiProperty({ type: 'string', nullable: true })
-	customerId: string | null;
-
+export class DeliveryOrderResponseDto extends OmitType(PickupOrderResponseDto, [
+	'orderType',
+] as const) {
 	@ApiResponseProperty({ type: 'string' })
 	deliveryCity: string;
 
@@ -26,7 +25,4 @@ export class DeliveryOrderResponseDto extends OrderResponseDto {
 
 	@ApiProperty({ type: 'string', nullable: true })
 	riderId: string | null;
-
-	@ApiProperty({ pattern: /^\d{6}$/, type: 'string', nullable: true })
-	verificationCode: string | null;
 }

@@ -1,42 +1,46 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+	BadRequestException,
+	ConflictException,
+	Injectable,
+	NotFoundException,
+} from '@nestjs/common';
 import { CreateOrderDto, CreateOrderedItemDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { OrderStatus, OrderType } from 'prisma/generated/enums';
+import { OrderStatus, OrderType, PaymentStatus } from 'prisma/generated/enums';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { Prisma } from 'prisma/generated/client';
 import {
-	AllowedOrderStatus,
 	OrderResponseUnion,
+	OrderWithRiderResponseUnion,
 	ProxyCartItem,
 } from './orders.types';
-import { OrdersStatusesService } from './order-statuses.service';
-
-const include = {
-	orderedItems: { omit: { orderId: true } },
-} satisfies Prisma.OrderInclude;
+import { UsersService } from 'src/users/users.service';
+import {
+	ensureValidStatus,
+	firstAndLastStatuses,
+	generateVerificationCode,
+	include,
+	needsToBeDelivered,
+	serializeOrder,
+} from './orders.utils';
+import { ROLES } from 'src/common/types/roles.types';
 
 @Injectable()
 export class OrdersService {
 	constructor(
-		private readonly orderStatusesService: OrdersStatusesService,
 		private readonly prismaService: PrismaService,
+		private readonly usersService: UsersService,
 	) {}
 
-	/**
-	 * @throws {BadRequestException} If any of the required fields is missing
-	 * based on the orderType
-	 */
 	async create(
 		customerId: string,
 		dto: CreateOrderDto,
 	): Promise<OrderResponseUnion> {
 		const { orderedItems, orderType, subscriptionId, ...location } = dto;
-		const needsRider = this.orderStatusesService.needsRider(orderType);
 
 		if (
 			(orderType === OrderType.SUBSCRIPTION && !subscriptionId) ||
-			(needsRider && Object.keys(location).length < 5)
+			(needsToBeDelivered(orderType) && Object.keys(location).length < 5)
 		) {
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
@@ -47,13 +51,6 @@ export class OrdersService {
 			orderType,
 		);
 
-		const initialStatuses: Record<OrderType, OrderStatus> = {
-			[OrderType.DELIVERY]: OrderStatus.PENDING,
-			[OrderType.PICKUP]: OrderStatus.PENDING,
-			[OrderType.SUBSCRIPTION]: OrderStatus.ACCEPTED,
-			[OrderType.WALK_IN]: OrderStatus.ACCEPTED,
-		};
-
 		const order = await this.prismaService.order.create({
 			data: {
 				amount: sanitizedOrderedItems.reduce(
@@ -61,30 +58,119 @@ export class OrdersService {
 					new Prisma.Decimal(0),
 				),
 				customerId: orderType === OrderType.WALK_IN ? undefined : customerId,
-				...(needsRider && location),
+				...(needsToBeDelivered(orderType) && location),
 				orderedItems: { create: sanitizedOrderedItems },
 				orderType,
-				orderStatus: initialStatuses[orderType],
+				orderStatus: firstAndLastStatuses[orderType][0],
 			},
 			include,
 		});
 
-		return this.orderStatusesService.serializeOrder(order);
+		return serializeOrder(order);
 	}
 
 	async updateStatus(
-		action: 'FINISHED' | AllowedOrderStatus,
+		next: OrderStatus,
 		id: string,
 	): Promise<OrderResponseUnion> {
-		return this.orderStatusesService.updateStatus(action, id);
+		const order = await this.prismaService.order.findUniqueOrThrow({
+			select: { orderStatus: true, orderType: true },
+			where: { id },
+		});
+
+		const { orderStatus: previous, orderType } = order;
+		const isValidStatus = ensureValidStatus(next, previous, orderType);
+		const code = generateVerificationCode();
+
+		if (!isValidStatus) {
+			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
+		}
+
+		const updatedOrder = await this.prismaService.order.update({
+			data: {
+				orderStatus: next,
+				verificationCode: next === OrderStatus.READY ? code : undefined,
+			},
+			include,
+			where: { id },
+		});
+
+		return serializeOrder({ ...updatedOrder, verificationCode: null });
+	}
+
+	async finish(id: string, code?: string) {
+		const order = await this.prismaService.order.findUniqueOrThrow({
+			select: {
+				orderStatus: true,
+				orderType: true,
+				paymentStatus: true,
+				verificationCode: true,
+			},
+			where: { id },
+		});
+
+		const { orderStatus: previous, orderType } = order;
+		const next = firstAndLastStatuses[orderType][1];
+		const isValidStatus = ensureValidStatus(next, previous, orderType);
+		const needsCode = orderType !== OrderType.WALK_IN;
+
+		if (!isValidStatus || order.paymentStatus !== PaymentStatus.PAID) {
+			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
+		}
+
+		if (needsCode && (!code || code !== order.verificationCode)) {
+			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
+		}
+
+		const updatedOrder = await this.prismaService.order.update({
+			data: { orderStatus: next, verificationCode: null },
+			include,
+			where: { id },
+		});
+
+		return serializeOrder(updatedOrder);
+	}
+
+	async assignRider(
+		id: string,
+		riderId: string,
+	): Promise<OrderWithRiderResponseUnion> {
+		const order = await this.prismaService.order.findUniqueOrThrow({
+			select: { orderStatus: true, orderType: true },
+			where: { id },
+		});
+
+		const { orderStatus, orderType } = order;
+		const { IN_TRANSIT, READY } = OrderStatus;
+		const isValidStatus = orderStatus === READY || orderStatus === IN_TRANSIT;
+
+		if (!needsToBeDelivered(orderType) || !isValidStatus) {
+			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
+		}
+
+		const rider = await this.usersService.findProtectedOne(riderId);
+
+		if (!(rider.role === ROLES.MANAGER || rider.role === ROLES.STAFF)) {
+			throw new NotFoundException(ERROR_MESSAGES.NOT_FOUND);
+		}
+
+		this.usersService.ensureNotBlocked(rider.blocked, rider.role);
+
+		const updatedOrder = await this.prismaService.order.update({
+			data: { orderStatus: IN_TRANSIT, riderId },
+			include,
+			where: { id },
+		});
+
+		return serializeOrder({
+			...updatedOrder,
+			verificationCode: null,
+		}) as OrderWithRiderResponseUnion;
 	}
 
 	/**
 	 * Creates orderedItems from CUSTOMER's cartItems if the order is DELIVERY or PICKUP type
 	 * Sanitizes the provided proxyCartItems if the order is WALK_IN or SUBSCRIPTION type
-	 *
-	 * @throws {BadRequestException} If any of the required fields is missing
-	 * based on the orderType
 	 */
 	private async sanitizeOrderedItems(
 		customerId: string,

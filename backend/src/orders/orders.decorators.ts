@@ -5,6 +5,7 @@ import {
 	ApiResponseNoStatusOptions,
 	ApiUnauthorizedResponse,
 	getSchemaPath,
+	ReferenceObject,
 } from '@nestjs/swagger';
 import { DeliveryOrderResponseDto } from './dto/delivery-order-response.dto';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
@@ -13,15 +14,20 @@ import { SubscriptionOrderResponseDto } from './dto/subscription-order-response.
 import { WalkInOrderResponseDto } from './dto/walk-in-order-response.dto';
 import { ApiUpdateAndConflict } from 'src/common/decorators/swagger.decorators';
 
+const delivery: ReferenceObject = {
+	$ref: getSchemaPath(DeliveryOrderResponseDto),
+};
+
+const pickup: ReferenceObject = { $ref: getSchemaPath(PickupOrderResponseDto) };
+
+const subscription: ReferenceObject = {
+	$ref: getSchemaPath(SubscriptionOrderResponseDto),
+};
+
+const walkIn: ReferenceObject = { $ref: getSchemaPath(WalkInOrderResponseDto) };
+
 const options = {
-	schema: {
-		oneOf: [
-			{ $ref: getSchemaPath(DeliveryOrderResponseDto) },
-			{ $ref: getSchemaPath(PickupOrderResponseDto) },
-			{ $ref: getSchemaPath(SubscriptionOrderResponseDto) },
-			{ $ref: getSchemaPath(WalkInOrderResponseDto) },
-		],
-	},
+	schema: { oneOf: [delivery, pickup, subscription, walkIn] },
 } satisfies ApiResponseNoStatusOptions;
 
 const ApiExtraModelsForOrders = () =>
@@ -52,3 +58,10 @@ export const ApiRejectOrderResource = () => ApiUpdateOrderStatusResource();
 export const ApiCancelOrderResource = () => ApiUpdateOrderStatusResource();
 export const ApiFinishOrderResource = () => ApiUpdateOrderStatusResource();
 export const ApiFailOrderResource = () => ApiUpdateOrderStatusResource();
+
+export const ApiAssignRiderResource = () => {
+	return applyDecorators(
+		ApiExtraModels(DeliveryOrderResponseDto, SubscriptionOrderResponseDto),
+		ApiUpdateAndConflict({ schema: { oneOf: [delivery, subscription] } }),
+	);
+};

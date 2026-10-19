@@ -2,19 +2,9 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { Prisma } from 'prisma/generated/client';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { CartItemResponseDto } from './dto/cart-item-response.dto';
-
-const select = {
-	image: true,
-	inStock: true,
-	menuCategories: true,
-	name: true,
-	price: true,
-} satisfies Prisma.MenuItemSelect;
-
-const include = { menuItem: { select } } satisfies Prisma.CartItemInclude;
+import { include, serializeProtectedCartItem } from './cart-items.utils';
 
 @Injectable()
 export class CartItemsService {
@@ -33,7 +23,7 @@ export class CartItemsService {
 			where: { customerId_menuItemId: { customerId, menuItemId } },
 		});
 
-		return this.serializeProtectedCartItem(cartItem);
+		return serializeProtectedCartItem(cartItem);
 	}
 
 	async findProtectedMany(customerId: string): Promise<CartItemResponseDto[]> {
@@ -42,7 +32,7 @@ export class CartItemsService {
 			where: { customerId },
 		});
 
-		return cartItems.map((item) => this.serializeProtectedCartItem(item));
+		return cartItems.map((item) => serializeProtectedCartItem(item));
 	}
 
 	async update(
@@ -71,7 +61,7 @@ export class CartItemsService {
 				where: { customerId, id },
 			});
 
-			return this.serializeProtectedCartItem(cartItem);
+			return serializeProtectedCartItem(cartItem);
 		});
 	}
 
@@ -81,14 +71,5 @@ export class CartItemsService {
 
 	async bulkDelete(customerId: string): Promise<void> {
 		await this.prismaService.cartItem.deleteMany({ where: { customerId } });
-	}
-
-	private serializeProtectedCartItem(
-		cartItem: Prisma.CartItemGetPayload<{ include: typeof include }>,
-	): CartItemResponseDto {
-		const { menuItem, ...cartItemRest } = cartItem;
-		const { menuCategories: categories, price, ...menuItemRest } = menuItem;
-		const rest = { ...cartItemRest, ...menuItemRest };
-		return { ...rest, categories, price: price.toFixed(2) };
 	}
 }

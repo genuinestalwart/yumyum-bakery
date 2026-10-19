@@ -9,7 +9,6 @@ import {
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
 import { Requester } from 'src/common/decorators/requester.decorator';
 import {
 	type Role,
@@ -23,6 +22,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequireAuth } from 'src/common/decorators/require-auth.decorator';
 import {
 	ApiAcceptOrderResource,
+	ApiAssignRiderResource,
 	ApiCancelOrderResource,
 	ApiCreateOrderResource,
 	ApiFailOrderResource,
@@ -30,9 +30,14 @@ import {
 	ApiRejectOrderResource,
 	ApiUpdateOrderStatusResource,
 } from './orders.decorators';
-import { OrderResponseUnion } from './orders.types';
+import {
+	OrderResponseUnion,
+	OrderWithRiderResponseUnion,
+} from './orders.types';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
+import { AssignRiderDto } from './dto/assign-rider.dto';
+import { FinishOrderDto } from './dto/finish-order.dto';
 
 @ApiGlobalErrors()
 @ApiTags('Orders')
@@ -86,14 +91,6 @@ export class OrdersController {
 		return this.ordersService.updateStatus(OrderStatus.CANCELLED, id);
 	}
 
-	@ApiFinishOrderResource()
-	@ApiOperation({ summary: 'Mark an order as finished' })
-	@Patch(':id/finish')
-	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
-	async finish(@Param('id') id: string): Promise<OrderResponseUnion> {
-		return this.ordersService.updateStatus('FINISHED', id);
-	}
-
 	@ApiFailOrderResource()
 	@ApiOperation({ summary: 'Mark an order as failed' })
 	@Patch(':id/fail')
@@ -111,5 +108,27 @@ export class OrdersController {
 		@Param('id') id: string,
 	): Promise<OrderResponseUnion> {
 		return this.ordersService.updateStatus(body.orderStatus, id);
+	}
+
+	@ApiFinishOrderResource()
+	@ApiOperation({ summary: 'Mark an order as finished' })
+	@Patch(':id/finish')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
+	async finish(
+		@Body() body: FinishOrderDto,
+		@Param('id') id: string,
+	): Promise<OrderResponseUnion> {
+		return this.ordersService.finish(id, body.verificationCode);
+	}
+
+	@ApiAssignRiderResource()
+	@ApiOperation({ summary: 'Assign rider to an order' })
+	@Patch(':id/assign-rider')
+	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
+	async assignRider(
+		@Body() body: AssignRiderDto,
+		@Param('id') id: string,
+	): Promise<OrderWithRiderResponseUnion> {
+		return this.ordersService.assignRider(id, body.riderId);
 	}
 }
