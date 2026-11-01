@@ -1,20 +1,38 @@
 import { Prisma } from 'prisma/generated/client';
 import { OrderStatus, OrderType } from 'prisma/generated/enums';
-import { OrderResponseUnion } from './orders.types';
+import {
+	QUERY_STATUSES,
+	type QueryStatus,
+	type OrderResponseUnion,
+} from './orders.types';
+const { DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN } = OrderType;
+
+const {
+	ACCEPTED,
+	CANCELLED,
+	COMPLETED,
+	DELIVERED,
+	FAILED,
+	IN_TRANSIT,
+	PENDING,
+	PICKED_UP,
+	PREPARING,
+	READY,
+	REJECTED,
+} = OrderStatus;
 
 export const include = {
 	orderedItems: { omit: { orderId: true } },
 } satisfies Prisma.OrderInclude;
 
 export const firstAndLastStatuses: Record<OrderType, OrderStatus[]> = {
-	[OrderType.DELIVERY]: [OrderStatus.PENDING, OrderStatus.DELIVERED],
-	[OrderType.PICKUP]: [OrderStatus.PENDING, OrderStatus.PICKED_UP],
-	[OrderType.SUBSCRIPTION]: [OrderStatus.ACCEPTED, OrderStatus.DELIVERED],
-	[OrderType.WALK_IN]: [OrderStatus.ACCEPTED, OrderStatus.COMPLETED],
-};
+	[DELIVERY]: [PENDING, DELIVERED],
+	[PICKUP]: [PENDING, PICKED_UP],
+	[SUBSCRIPTION]: [ACCEPTED, DELIVERED],
+	[WALK_IN]: [ACCEPTED, COMPLETED],
+} as const;
 
 export const needsToBeDelivered = (orderType: OrderType): boolean => {
-	const { DELIVERY, SUBSCRIPTION } = OrderType;
 	return orderType === DELIVERY || orderType === SUBSCRIPTION;
 };
 
@@ -43,50 +61,72 @@ const serializeLocation = (
 export const serializeOrder = (
 	order: Prisma.OrderGetPayload<{ include: typeof include }>,
 ): OrderResponseUnion => {
-	const isWalkIn = order.orderType === OrderType.WALK_IN;
-	const isSubscription = order.orderType === OrderType.SUBSCRIPTION;
+	const { customerId, riderId, subscriptionId, verificationCode } = order;
 
 	return {
 		amount: order.amount.toFixed(2),
 		createdAt: order.createdAt,
-		customerId: !isWalkIn ? order.customerId : undefined,
+		...(order.orderType !== WALK_IN && { customerId, verificationCode }),
 		...serializeLocation(order),
 		id: order.id,
-		orderComment: order.orderComment,
 		orderedItems: order.orderedItems.map(({ price, ...rest }) => {
 			return { price: price.toFixed(2), ...rest };
 		}),
-		orderRating: order.orderRating,
 		orderStatus: order.orderStatus,
 		orderType: order.orderType,
 		paymentStatus: order.paymentStatus,
-		riderId: needsToBeDelivered(order.orderType) ? order.riderId : undefined,
-		subscriptionId: isSubscription ? order.subscriptionId! : undefined,
+		...(needsToBeDelivered(order.orderType) && { riderId }),
+		...(order.orderType === SUBSCRIPTION && { subscriptionId }),
 		updatedAt: order.updatedAt,
-		verificationCode: !isWalkIn ? order.verificationCode : undefined,
 	};
 };
 
-export const ensureValidStatus = (
+export const getStatusCycles = (isCustomer: boolean) => {
+	const completed = isCustomer ? [] : [COMPLETED];
+	const forAllTypes = [ACCEPTED, CANCELLED];
+	const forCustomer = [PREPARING, READY, FAILED];
+	const forEmployee = [PENDING, REJECTED];
+	const forRider = [IN_TRANSIT, DELIVERED];
+
+	return {
+		[DELIVERY]: [...forAllTypes, ...forCustomer, ...forEmployee, ...forRider],
+		[PICKUP]: [...forAllTypes, ...forCustomer, ...forEmployee, PICKED_UP],
+		[SUBSCRIPTION]: [...forAllTypes, ...forCustomer, ...forRider],
+		[WALK_IN]: [...completed, ...forAllTypes],
+	};
+};
+
+export const sanitizeOrderStatuses = (
+	isCustomer: boolean,
+	statuses: QueryStatus[],
+	types: OrderType[],
+): OrderStatus[] => {
+	const statusCycles = getStatusCycles(isCustomer);
+
+	const sanitizedStatuses: OrderStatus[] = statuses.flatMap((status) => {
+		if (status === QUERY_STATUSES.FINISHED) {
+			return [...(isCustomer ? [] : [COMPLETED]), DELIVERED, PICKED_UP];
+		}
+
+		if (status === QUERY_STATUSES.ONGOING) {
+			return [PENDING, PREPARING, READY, IN_TRANSIT];
+		}
+
+		return [status];
+	});
+
+	const filteredByTypes = [
+		...new Set(types.flatMap((orderType) => statusCycles[orderType])),
+	];
+
+	return sanitizedStatuses.filter((status) => filteredByTypes.includes(status));
+};
+
+export const validateOrderStatus = (
 	nextStatus: OrderStatus,
 	previousStatus: OrderStatus,
 	orderType: OrderType,
 ): boolean => {
-	const {
-		ACCEPTED,
-		CANCELLED,
-		COMPLETED,
-		DELIVERED,
-		FAILED,
-		IN_TRANSIT,
-		PENDING,
-		PICKED_UP,
-		PREPARING,
-		READY,
-		REJECTED,
-	} = OrderStatus;
-
-	const { DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN } = OrderType;
 	const allOrderTypes = [DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN];
 
 	type StatusChain = Partial<

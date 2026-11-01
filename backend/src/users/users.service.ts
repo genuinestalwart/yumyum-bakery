@@ -32,8 +32,8 @@ export class UsersService {
 	): Promise<ProtectedUserResponseDto[]> {
 		let query = `identities.connection:"${AUTH0_CONNECTION}"`;
 
-		if (dto.blocked !== undefined) {
-			query += ` AND blocked:${dto.blocked}`;
+		if (dto.isBlocked !== undefined) {
+			query += ` AND blocked:${dto.isBlocked}`;
 		}
 
 		if (dto.role) {
@@ -82,8 +82,8 @@ export class UsersService {
 		return serializeProtectedUser(user);
 	}
 
-	ensureNotBlocked(blocked: boolean, role: Role): void {
-		if (blocked) {
+	ensureNotBlocked(isBlocked: boolean, role: Role): void {
+		if (isBlocked) {
 			if (role === ROLES.MANAGER || role === ROLES.STAFF) {
 				this.logger.warn(`Employee is currently deactivated`);
 				throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);

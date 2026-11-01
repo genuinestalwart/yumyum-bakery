@@ -86,9 +86,6 @@ model Order {
   deliveryLatitude   Float?  @map("delivery_latitude") @db.DoublePrecision
   deliveryLongitude  Float?  @map("delivery_longitude") @db.DoublePrecision
 
-  // Mutable fields
-  orderComment     String?       @map("order_comment") @db.VarChar(500) // can't modify after 7 days of order DELIVERED
-  orderRating      Int?          @map("order_rating") @db.Integer // can't modify after 7 days of order DELIVERED
   orderStatus      OrderStatus   @map("order_status")
   riderId          String?       @map("rider_id") @db.VarChar(250) // initially null, will be set when a rider is assigned to the order
   paymentStatus    PaymentStatus @default(UNPAID) @map("payment_status")
@@ -101,6 +98,7 @@ model Order {
   // Front relation fields
   orderedItems OrderedItem[]
   refunds      Refund[]
+  reviews      Review[]
 
   // Back relation fields
   subscription Subscription? @relation(fields: [subscriptionId], onDelete: SetNull, references: [id])
@@ -162,13 +160,16 @@ model Review {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
   // Foreign keys
-  menuItemId String @map("menu_item_id") @db.Uuid
+  menuItemId String? @map("menu_item_id") @db.Uuid
+  orderId    String? @map("orderId") @db.Uuid
 
   // Back relation fields
-  menuItem MenuItem @relation(fields: [menuItemId], references: [id])
+  menuItem MenuItem? @relation(fields: [menuItemId], references: [id])
+  order    Order?    @relation(fields: [orderId], references: [id])
 
   // Constraints
   @@unique([customerId, menuItemId])
+  @@unique([customerId, orderId])
   @@map("reviews")
 }
 
@@ -228,7 +229,7 @@ enum OrderStatus {
 
   // Will be set by bakery
   ACCEPTED   @map("accepted") // 1st if WALK_IN or SUBSCRIPTION type, otherwise 2nd
-  REJECTED   @map("rejected") // 2nd | final status
+  REJECTED   @map("rejected") // 2nd if DELIVERY or PICKUP type | final status
   COMPLETED  @map("completed") // 3rd if WALK_IN type | final status
   PREPARING  @map("preparing") // 3rd
   READY      @map("ready") // 4th

@@ -48,10 +48,10 @@ export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 	@ToTrimmedLowerCase()
 	@IsOptional()
 	@IsIn(Object.values(SORT_BY))
-	sortBy?: SortBy = SORT_BY.POPULARITY;
+	sortBy?: SortBy;
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
 	@IsIn(Object.values(SORT_ORDER))
-	sortOrder?: SortOrder = SORT_ORDER.DESC;
+	sortOrder?: SortOrder;
 }

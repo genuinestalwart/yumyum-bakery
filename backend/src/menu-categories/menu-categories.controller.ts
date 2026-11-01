@@ -43,7 +43,7 @@ export class MenuCategoriesController {
 	}
 
 	@ApiFindPublicManyMenuCategoriesResource()
-	@ApiOperation({ summary: 'Find all menu categories' })
+	@ApiOperation({ summary: 'Find many public menu categories' })
 	@Get()
 	async findPublicMany(): Promise<MenuCategoryResponseDto[]> {
 		return this.menuCategoriesService.findPublicMany();

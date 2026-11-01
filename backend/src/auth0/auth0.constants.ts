@@ -11,4 +11,4 @@ export const AUTH0_ROLE_IDS: Record<Role, string> = {
 	[ROLES.CUSTOMER]: process.env.AUTH0_ROLE_CUSTOMER!,
 	[ROLES.MANAGER]: process.env.AUTH0_ROLE_MANAGER!,
 	[ROLES.STAFF]: process.env.AUTH0_ROLE_STAFF!,
-};
+} as const;

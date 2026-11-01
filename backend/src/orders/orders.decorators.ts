@@ -2,6 +2,7 @@ import { applyDecorators } from '@nestjs/common';
 import {
 	ApiCreatedResponse,
 	ApiExtraModels,
+	ApiOkResponse,
 	ApiResponseNoStatusOptions,
 	ApiUnauthorizedResponse,
 	getSchemaPath,
@@ -12,7 +13,10 @@ import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { PickupOrderResponseDto } from './dto/pickup-order-response.dto';
 import { SubscriptionOrderResponseDto } from './dto/subscription-order-response.dto';
 import { WalkInOrderResponseDto } from './dto/walk-in-order-response.dto';
-import { ApiUpdateAndConflict } from 'src/common/decorators/swagger.decorators';
+import {
+	ApiNotFoundAndOk,
+	ApiUpdateAndConflict,
+} from 'src/common/decorators/swagger.decorators';
 
 const delivery: ReferenceObject = {
 	$ref: getSchemaPath(DeliveryOrderResponseDto),
@@ -42,6 +46,27 @@ export const ApiCreateOrderResource = () => {
 	return applyDecorators(
 		ApiExtraModelsForOrders(),
 		ApiCreatedResponse(options),
+		ApiUnauthorizedResponse({ description: ERROR_MESSAGES.UNAUTHORIZED }),
+	);
+};
+
+export const ApiFindProtectedManyOrdersResource = () => {
+	return applyDecorators(
+		ApiExtraModelsForOrders(),
+		ApiOkResponse({
+			schema: {
+				items: { oneOf: [delivery, pickup, subscription, walkIn] },
+				type: 'array',
+			},
+		}),
+		ApiUnauthorizedResponse({ description: ERROR_MESSAGES.UNAUTHORIZED }),
+	);
+};
+
+export const ApiFindProtectedOneOrderResource = () => {
+	return applyDecorators(
+		ApiExtraModelsForOrders(),
+		ApiNotFoundAndOk(options),
 		ApiUnauthorizedResponse({ description: ERROR_MESSAGES.UNAUTHORIZED }),
 	);
 };

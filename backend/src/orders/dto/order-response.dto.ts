@@ -1,5 +1,5 @@
 import { ApiProperty, ApiResponseProperty } from '@nestjs/swagger';
-import { OrderStatus, PaymentStatus } from 'prisma/generated/enums';
+import { PaymentStatus } from 'prisma/generated/enums';
 
 export class OrderedItemResponseDto {
 	@ApiResponseProperty({ format: 'uuid' })
@@ -25,16 +25,7 @@ export class OrderResponseDto {
 	@ApiResponseProperty({ format: 'uuid' })
 	id: string;
 
-	@ApiProperty({ type: 'string', nullable: true })
-	orderComment: string | null;
-
 	orderedItems: OrderedItemResponseDto[];
-
-	@ApiProperty({ maximum: 5, minimum: 1, nullable: true, type: 'integer' })
-	orderRating: number | null;
-
-	@ApiResponseProperty({ enum: Object.values(OrderStatus) })
-	orderStatus: OrderStatus;
 
 	@ApiResponseProperty({ enum: Object.values(PaymentStatus) })
 	paymentStatus: PaymentStatus;

@@ -3,6 +3,7 @@ import { ProtectedMenuItemResponseDto } from './dto/protected-menu-item-response
 import { PublicMenuItemResponseDto } from './dto/public-menu-item.response.dto';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { FindManyMenuItemsDto } from './dto/find-many-menu-items.dto';
+import { toConditionalValue } from 'src/common/utils/conditional.util';
 
 export const include = {
 	menuCategories: { select: { id: true, name: true } },
@@ -12,14 +13,6 @@ export const omit = {
 	createdAt: true,
 	isVisible: true,
 } satisfies Prisma.MenuItemOmit;
-
-export const toConditionalValue = <TTrue, TFalse>(
-	value: boolean | undefined,
-	whenTrue: TTrue,
-	whenFalse: TFalse,
-): TTrue | TFalse | undefined => {
-	return value === undefined ? undefined : value ? whenTrue : whenFalse;
-};
 
 export const serializeProtectedMenuItem = (
 	menuItem: Prisma.MenuItemGetPayload<{ include: typeof include }>,

@@ -13,17 +13,23 @@ import {
 	OrderResponseUnion,
 	OrderWithRiderResponseUnion,
 	ProxyCartItem,
+	SORT_BY,
 } from './orders.types';
 import { UsersService } from 'src/users/users.service';
 import {
-	ensureValidStatus,
+	validateOrderStatus,
 	firstAndLastStatuses,
 	generateVerificationCode,
 	include,
 	needsToBeDelivered,
+	sanitizeOrderStatuses,
 	serializeOrder,
 } from './orders.utils';
 import { ROLES } from 'src/common/types/roles.types';
+import { FindProtectedManyOrdersDto } from './dto/find-protected-many-orders.dto';
+import { toConditionalValue } from 'src/common/utils/conditional.util';
+import { SORT_ORDER } from 'src/common/types/sorting.types';
+const { DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN } = OrderType;
 
 @Injectable()
 export class OrdersService {
@@ -35,12 +41,15 @@ export class OrdersService {
 	async create(
 		customerId: string,
 		dto: CreateOrderDto,
+		isCustomer: boolean,
 	): Promise<OrderResponseUnion> {
 		const { orderedItems, orderType, subscriptionId, ...location } = dto;
 
 		if (
-			(orderType === OrderType.SUBSCRIPTION && !subscriptionId) ||
-			(needsToBeDelivered(orderType) && Object.keys(location).length < 5)
+			(orderType === SUBSCRIPTION && !subscriptionId) ||
+			(needsToBeDelivered(orderType) && Object.keys(location).length < 5) ||
+			(!isCustomer && orderType !== WALK_IN) ||
+			(isCustomer && orderType !== DELIVERY && orderType !== PICKUP)
 		) {
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
@@ -69,66 +78,90 @@ export class OrdersService {
 		return serializeOrder(order);
 	}
 
-	async updateStatus(
-		next: OrderStatus,
+	async findProtectedMany(
+		customerId: string,
+		dto: FindProtectedManyOrdersDto,
+		isCustomer: boolean,
+	): Promise<OrderResponseUnion[]> {
+		const defaultSortBy = dto.sortBy ?? SORT_BY.CREATED_AT;
+		const defaultSortOrder = dto.sortOrder ?? SORT_ORDER.DESC;
+		const max = dto.maxAmount ?? undefined;
+		const min = dto.minAmount ?? undefined;
+		const from = dto.fromCreatedAt ?? undefined;
+		const to = dto.toCreatedAt ?? undefined;
+		const types = dto.types ?? [DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN];
+		const { PAID, UNPAID } = PaymentStatus;
+
+		const orders = await this.prismaService.order.findMany({
+			include,
+			orderBy: { [defaultSortBy]: [defaultSortOrder] },
+			skip: dto.page ? (dto.page - 1) * (dto.limit ?? 20) : 0,
+			take: dto.limit ?? 20,
+			where: {
+				amount:
+					!isCustomer && (max || min) ? { gte: min, lte: max } : undefined,
+				createdAt: from || to ? { gte: from, lte: to } : undefined,
+				customerId: isCustomer ? customerId : dto.customerId,
+				orderedItems: dto.menuItems
+					? { some: { menuItemId: { in: dto.menuItems } } }
+					: undefined,
+				orderStatus: dto.statuses
+					? { in: sanitizeOrderStatuses(isCustomer, dto.statuses, types) }
+					: undefined,
+				orderType: dto.types ? { in: dto.types } : undefined,
+				riderId: isCustomer ? undefined : dto.riderId,
+				paymentStatus: toConditionalValue(dto.isPaid, PAID, UNPAID),
+			},
+		});
+
+		return orders.map((order) =>
+			serializeOrder(isCustomer ? order : { ...order, verificationCode: null }),
+		);
+	}
+
+	async findProtectedOne(
+		customerId: string,
 		id: string,
+		isCustomer: boolean,
 	): Promise<OrderResponseUnion> {
 		const order = await this.prismaService.order.findUniqueOrThrow({
-			select: { orderStatus: true, orderType: true },
-			where: { id },
-		});
-
-		const { orderStatus: previous, orderType } = order;
-		const isValidStatus = ensureValidStatus(next, previous, orderType);
-		const code = generateVerificationCode();
-
-		if (!isValidStatus) {
-			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
-		}
-
-		const updatedOrder = await this.prismaService.order.update({
-			data: {
-				orderStatus: next,
-				verificationCode: next === OrderStatus.READY ? code : undefined,
-			},
 			include,
-			where: { id },
+			where: { id, customerId: isCustomer ? customerId : undefined },
 		});
 
-		return serializeOrder({ ...updatedOrder, verificationCode: null });
+		return serializeOrder(
+			isCustomer ? order : { ...order, verificationCode: null },
+		);
+	}
+
+	async updateStatus(
+		id: string,
+		next: OrderStatus,
+	): Promise<OrderResponseUnion> {
+		await this.ensureValidStatus(id, next);
+		const isReady = next === OrderStatus.READY;
+		const code = isReady ? generateVerificationCode() : undefined;
+		return this.updateAndSerialize(undefined, id, next, code);
+	}
+
+	async cancel(
+		customerId: string | undefined,
+		id: string,
+	): Promise<OrderResponseUnion> {
+		const next = OrderStatus.CANCELLED;
+		await this.ensureValidStatus(id, next);
+		return this.updateAndSerialize(customerId, id, next, undefined);
 	}
 
 	async finish(id: string, code?: string) {
-		const order = await this.prismaService.order.findUniqueOrThrow({
-			select: {
-				orderStatus: true,
-				orderType: true,
-				paymentStatus: true,
-				verificationCode: true,
-			},
-			where: { id },
-		});
+		const order = await this.ensureValidStatus(id, 'FINISHED');
+		const needsVerification = order.orderType !== OrderType.WALK_IN;
 
-		const { orderStatus: previous, orderType } = order;
-		const next = firstAndLastStatuses[orderType][1];
-		const isValidStatus = ensureValidStatus(next, previous, orderType);
-		const needsCode = orderType !== OrderType.WALK_IN;
-
-		if (!isValidStatus || order.paymentStatus !== PaymentStatus.PAID) {
-			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
-		}
-
-		if (needsCode && (!code || code !== order.verificationCode)) {
+		if (needsVerification && (!code || code !== order.verificationCode)) {
 			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 		}
 
-		const updatedOrder = await this.prismaService.order.update({
-			data: { orderStatus: next, verificationCode: null },
-			include,
-			where: { id },
-		});
-
-		return serializeOrder(updatedOrder);
+		return this.updateAndSerialize(undefined, id, order.next, null);
 	}
 
 	async assignRider(
@@ -177,7 +210,6 @@ export class OrdersService {
 		orderedItems: CreateOrderedItemDto[] | undefined,
 		orderType: OrderType,
 	) {
-		const { DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN } = OrderType;
 		let cartItems: ProxyCartItem[] = [];
 
 		if (orderType === DELIVERY || orderType === PICKUP) {
@@ -219,5 +251,47 @@ export class OrdersService {
 		}
 
 		return cartItems.map(({ inStock, ...rest }) => rest);
+	}
+
+	private async ensureValidStatus(
+		id: string,
+		status: OrderStatus | 'FINISHED',
+	) {
+		const order = await this.prismaService.order.findUniqueOrThrow({
+			select: {
+				orderStatus: true,
+				orderType: true,
+				paymentStatus: true,
+				verificationCode: true,
+			},
+			where: { id },
+		});
+
+		const { orderStatus, orderType, verificationCode } = order;
+		const isFinished = status === 'FINISHED';
+		const isPaid = order.paymentStatus === PaymentStatus.PAID;
+		const next = isFinished ? firstAndLastStatuses[orderType][1] : status;
+		const isValidStatus = validateOrderStatus(next, orderStatus, orderType);
+
+		if (!isValidStatus || (isFinished && !isPaid)) {
+			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
+		}
+
+		return { next, orderType, verificationCode };
+	}
+
+	private async updateAndSerialize(
+		customerId: string | undefined,
+		id: string,
+		orderStatus: OrderStatus,
+		verificationCode: string | null | undefined,
+	): Promise<OrderResponseUnion> {
+		const order = await this.prismaService.order.update({
+			data: { orderStatus, verificationCode },
+			include,
+			where: { customerId, id },
+		});
+
+		return serializeOrder({ ...order, verificationCode: null });
 	}
 }

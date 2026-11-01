@@ -8,7 +8,7 @@
 		"./backend",
 		"./web"
 	],
-	"packageManager": "npm@12.2.0",
+	"packageManager": "npm@12.2.1",
 	"license": "UNLICENSED",
 	"scripts": {
 		"build": "turbo run build",
@@ -19,17 +19,17 @@
 	},
 	"devDependencies": {
 		"eslint-config-prettier": "^10.1.8",
-		"eslint-plugin-prettier": "^5.5.6",
+		"eslint-plugin-prettier": "^5.5.7",
 		"prettier": "^3.9.10",
 		"prettier-plugin-prisma": "^5.0.0",
-		"turbo": "^2.11.7"
+		"turbo": "^2.11.10"
 	},
 	"allowScripts": {
-		"@prisma/engines@7.10.0": true,
-		"prisma@7.10.0": true,
 		"@scarf/scarf": true,
 		"unrs-resolver": true,
 		"esbuild": true,
-		"@parcel/watcher@2.6.0": true
+		"@parcel/watcher@2.6.0": true,
+		"prisma@7.10.1": true,
+		"@prisma/engines@7.10.1": true
 	}
 }

@@ -31,6 +31,9 @@ export const ToTrimmedLowerCase = () =>
 export const ToTrimmedUpperCase = () =>
 	transformString((value) => value.trim().toUpperCase());
 
+export const QueryToArray = () =>
+	Transform(({ value }) => parseQueryArray(value));
+
 export const QueryToBoolean = () =>
 	Transform(({ value }) => {
 		return value === 'true' ? true : value === 'false' ? false : value;

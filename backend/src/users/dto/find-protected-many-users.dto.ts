@@ -20,19 +20,19 @@ export class FindProtectedManyUsersDto {
 	@QueryToBoolean()
 	@IsOptional()
 	@IsBoolean()
-	blocked?: boolean;
+	isBlocked?: boolean;
 
 	@Type(() => Number)
 	@IsOptional()
 	@IsInt()
 	@Min(1)
-	limit?: number = 20;
+	limit?: number;
 
 	@Type(() => Number)
 	@IsOptional()
 	@IsInt()
 	@Min(1)
-	page?: number = 1;
+	page?: number;
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
@@ -47,10 +47,10 @@ export class FindProtectedManyUsersDto {
 	@ToTrimmedLowerCase()
 	@IsOptional()
 	@IsIn(Object.values(SORT_BY))
-	sortBy?: SortBy = SORT_BY.NAME;
+	sortBy?: SortBy;
 
 	@ToTrimmedLowerCase()
 	@IsOptional()
 	@IsIn(Object.values(SORT_ORDER))
-	sortOrder?: SortOrder = SORT_ORDER.ASC;
+	sortOrder?: SortOrder;
 }

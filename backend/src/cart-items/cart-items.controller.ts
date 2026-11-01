@@ -38,7 +38,7 @@ export class CartItemsController {
 	constructor(private readonly cartItemsService: CartItemsService) {}
 
 	@ApiCreateCartItemResource()
-	@ApiOperation({ summary: 'Create a cart item' })
+	@ApiOperation({ summary: 'Create a new cart item' })
 	@Post()
 	async create(
 		@Body() body: CreateCartItemDto,

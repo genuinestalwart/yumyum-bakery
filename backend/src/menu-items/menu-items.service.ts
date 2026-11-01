@@ -19,8 +19,8 @@ import {
 	sanitizeMenuItem,
 	serializeProtectedMenuItem,
 	serializePublicMenuItem,
-	toConditionalValue,
 } from './menu-items.utils';
+import { toConditionalValue } from 'src/common/utils/conditional.util';
 
 @Injectable()
 export class MenuItemsService {
@@ -104,14 +104,14 @@ export class MenuItemsService {
 		dto: UpdateMenuItemDto,
 		id: string,
 	): Promise<ProtectedMenuItemResponseDto> {
-		return await this.updateAndSerialize(sanitizeMenuItem(dto), id);
+		return this.updateAndSerialize(sanitizeMenuItem(dto), id);
 	}
 
 	async updateStock(
 		dto: UpdateMenuItemStockDto,
 		id: string,
 	): Promise<ProtectedMenuItemResponseDto> {
-		return await this.updateAndSerialize(dto, id);
+		return this.updateAndSerialize(dto, id);
 	}
 
 	async toggleVisibility(id: string): Promise<ProtectedMenuItemResponseDto> {
@@ -125,7 +125,7 @@ export class MenuItemsService {
 			publishedAt: !menuItem.publishedAt ? new Date() : undefined,
 		} satisfies Prisma.MenuItemUpdateInput;
 
-		return await this.updateAndSerialize(data, id);
+		return this.updateAndSerialize(data, id);
 	}
 
 	async archive(id: string): Promise<ProtectedMenuItemResponseDto> {
