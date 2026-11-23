@@ -49,7 +49,7 @@ export class PrismaExceptionFilter implements ExceptionFilter {
 				message: ERROR_MESSAGES.NOT_FOUND,
 				statusCode: HttpStatus.NOT_FOUND,
 			},
-		};
+		} as const;
 
 		const prismaError = errorMapper[exception.code] ?? FALLBACK_ERROR;
 

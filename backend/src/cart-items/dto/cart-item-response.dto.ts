@@ -22,8 +22,8 @@ export class CartItemResponseDto {
 	@ApiResponseProperty({ type: 'string' })
 	name: string;
 
-	@ApiProperty({ minimum: 0.01, format: 'float', type: 'number' })
-	price: number;
+	@ApiResponseProperty({ type: 'string' })
+	price: string;
 
 	@ApiProperty({ maximum: 999, minimum: 1, type: 'integer' })
 	quantity: number;

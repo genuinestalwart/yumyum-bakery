@@ -9,8 +9,10 @@ import { EmployeesModule } from './employees/employees.module';
 import { InternalModule } from './internal/internal.module';
 import { MenuCategoriesModule } from './menu-categories/menu-categories.module';
 import { MenuItemsModule } from './menu-items/menu-items.module';
+import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
 	imports: [
@@ -22,8 +24,10 @@ import { UsersModule } from './users/users.module';
 		InternalModule,
 		MenuCategoriesModule,
 		MenuItemsModule,
+		OrdersModule,
 		PrismaModule,
 		UsersModule,
+		ReviewsModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

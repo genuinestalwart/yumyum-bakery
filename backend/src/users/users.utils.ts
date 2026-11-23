@@ -1,13 +1,20 @@
 import Auth0 from 'src/auth0/auth0.types';
 import { AUTH0_ROLE_PREFIX } from 'src/auth0/auth0.constants';
 import type { Role } from 'src/common/types/roles.types';
+import {
+	ProtectedUserIdentityDto,
+	ProtectedUserResponseDto,
+} from './dto/protected-user-response.dto';
+import { PublicUserResponseDto } from './dto/public-user-response.dto';
 
-const extractRoleFromAppMetadata = (user: Auth0.UserResponseSchema) => {
+const extractRoleFromAppMetadata = (user: Auth0.UserResponseSchema): Role => {
 	const roleInAppMetadata = (user.app_metadata?.role || '') as string;
 	return roleInAppMetadata.slice(AUTH0_ROLE_PREFIX.length) as Role;
 };
 
-const serializeIdentities = (identities: Auth0.UserIdentity[]) => {
+const serializeIdentities = (
+	identities: Auth0.UserIdentity[],
+): ProtectedUserIdentityDto[] => {
 	return identities.map((identity) => ({
 		id: identity.user_id as string,
 		isSocial: identity.isSocial!,
@@ -15,7 +22,9 @@ const serializeIdentities = (identities: Auth0.UserIdentity[]) => {
 	}));
 };
 
-export const serializeProtectedUser = (user: Auth0.UserResponseSchema) => {
+export const serializeProtectedUser = (
+	user: Auth0.UserResponseSchema,
+): ProtectedUserResponseDto => {
 	return {
 		blocked: user.blocked!,
 		createdAt: user.created_at!,
@@ -30,7 +39,9 @@ export const serializeProtectedUser = (user: Auth0.UserResponseSchema) => {
 	};
 };
 
-export const serializePublicUser = (user: Auth0.UserResponseSchema) => {
+export const serializePublicUser = (
+	user: Auth0.UserResponseSchema,
+): PublicUserResponseDto => {
 	const { user_id, name, picture } = user;
 	const role = extractRoleFromAppMetadata(user);
 	return { id: user_id!, name: name!, picture: picture!, role };

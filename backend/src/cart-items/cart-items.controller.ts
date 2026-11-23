@@ -17,6 +17,7 @@ import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import {
 	ApiDeleteResource,
 	ApiGlobalErrors,
+	ApiProtectedManyResource,
 } from 'src/common/decorators/swagger.decorators';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Requester } from 'src/common/decorators/requester.decorator';
@@ -26,7 +27,6 @@ import { CartItemResponseDto } from './dto/cart-item-response.dto';
 import type { Response } from 'express';
 import {
 	ApiCreateCartItemResource,
-	ApiFindProtectedManyCartItemsResource,
 	ApiUpdateCartItemResource,
 } from './cart-items.decorators';
 
@@ -38,7 +38,7 @@ export class CartItemsController {
 	constructor(private readonly cartItemsService: CartItemsService) {}
 
 	@ApiCreateCartItemResource()
-	@ApiOperation({ summary: 'Create a cart item' })
+	@ApiOperation({ summary: 'Create a new cart item' })
 	@Post()
 	async create(
 		@Body() body: CreateCartItemDto,
@@ -47,7 +47,7 @@ export class CartItemsController {
 		return this.cartItemsService.create(requester.id, body);
 	}
 
-	@ApiFindProtectedManyCartItemsResource()
+	@ApiProtectedManyResource({ type: [CartItemResponseDto] })
 	@ApiOperation({ summary: 'Find many protected cart items' })
 	@Get()
 	async findProtectedMany(

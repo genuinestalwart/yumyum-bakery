@@ -1,8 +1,4 @@
-import {
-	ConflictException,
-	Injectable,
-	NotFoundException,
-} from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { CreateMenuItemDto } from './dto/create-menu-item.dto';
 import { UpdateMenuItemDto } from './dto/update-menu-item.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
@@ -13,16 +9,18 @@ import { ProtectedMenuItemResponseDto } from './dto/protected-menu-item-response
 import { PublicMenuItemResponseDto } from './dto/public-menu-item.response.dto';
 import { FindProtectedManyMenuItemsDto } from './dto/find-protected-many-menu-items.dto';
 import { FindPublicManyMenuItemsDto } from './dto/find-public-many-menu-items.dto';
-import { FindManyMenuItemsDto } from './dto/find-many-menu-items.dto';
 import { SORT_BY } from './menu-items.types';
 import { SORT_ORDER } from 'src/common/types/sorting.types';
 import { createLogger } from 'src/common/utils/logger.util';
-
-const include = {
-	menuCategories: { select: { id: true, name: true } },
-} satisfies Prisma.MenuItemInclude;
-
-const omit = { createdAt: true, isVisible: true } satisfies Prisma.MenuItemOmit;
+import {
+	getMenuItemsWhere,
+	include,
+	omit,
+	sanitizeMenuItem,
+	serializeProtectedMenuItem,
+	serializePublicMenuItem,
+} from './menu-items.utils';
+import { toConditionalValue } from 'src/common/utils/conditional.util';
 
 @Injectable()
 export class MenuItemsService {
@@ -31,11 +29,11 @@ export class MenuItemsService {
 
 	async create(dto: CreateMenuItemDto): Promise<ProtectedMenuItemResponseDto> {
 		const menuItem = await this.prismaService.menuItem.create({
-			data: this.sanitizeMenuItem(dto) as Prisma.MenuItemCreateInput,
+			data: sanitizeMenuItem(dto) as Prisma.MenuItemCreateInput,
 			include,
 		});
 
-		return this.serializeProtectedMenuItem(menuItem);
+		return serializeProtectedMenuItem(menuItem);
 	}
 
 	async findProtectedMany(
@@ -47,39 +45,39 @@ export class MenuItemsService {
 			include,
 			orderBy: { name: 'asc' },
 			where: {
-				...this.getMenuItemsWhere(rest),
-				archivedAt: this.toConditionalValue(isArchived, { not: null }, null),
+				...getMenuItemsWhere(rest),
+				archivedAt: toConditionalValue(isArchived, { not: null }, null),
 				isVisible,
 			},
 		});
 
-		return menuItems.map((item) => this.serializeProtectedMenuItem(item));
+		return menuItems.map((item) => serializeProtectedMenuItem(item));
 	}
 
 	async findPublicMany(
 		dto: FindPublicManyMenuItemsDto,
 	): Promise<PublicMenuItemResponseDto[]> {
-		const { maxPrepTime, maxPrice, minPrepTime, minPrice } = dto;
+		const { maxPrepTime, minPrepTime } = dto;
 		const prepTimeRange = { gte: minPrepTime, lte: maxPrepTime };
-		const priceRange = { gte: minPrice, lte: maxPrice };
+		const gte = dto.minPrice ? new Prisma.Decimal(dto.minPrice) : undefined;
+		const lte = dto.maxPrice ? new Prisma.Decimal(dto.maxPrice) : undefined;
 		const defaultSortBy = dto.sortBy ?? SORT_BY.POPULARITY;
-		const defaultSortOrder = dto.sortOrder ?? SORT_ORDER.DESC;
 
 		const menuItems = await this.prismaService.menuItem.findMany({
 			include,
 			omit,
-			orderBy: { [defaultSortBy]: defaultSortOrder },
+			orderBy: { [defaultSortBy]: dto.sortOrder ?? SORT_ORDER.DESC },
 			where: {
-				...this.getMenuItemsWhere(dto),
+				...getMenuItemsWhere(dto),
 				archivedAt: null,
 				isVisible: true,
 				prepTime: maxPrepTime || minPrepTime ? prepTimeRange : undefined,
-				price: maxPrice || minPrice ? priceRange : undefined,
+				price: gte || lte ? { gte, lte } : undefined,
 				publishedAt: { not: null },
 			},
 		});
 
-		return menuItems.map((item) => this.serializePublicMenuItem(item));
+		return menuItems.map((item) => serializePublicMenuItem(item));
 	}
 
 	async findProtectedOne(id: string): Promise<ProtectedMenuItemResponseDto> {
@@ -88,7 +86,7 @@ export class MenuItemsService {
 			where: { id },
 		});
 
-		return this.serializeProtectedMenuItem(menuItem);
+		return serializeProtectedMenuItem(menuItem);
 	}
 
 	async findPublicOne(id: string): Promise<PublicMenuItemResponseDto> {
@@ -98,21 +96,21 @@ export class MenuItemsService {
 			where: { id, isVisible: true, publishedAt: { not: null } },
 		});
 
-		return this.serializePublicMenuItem(menuItem);
+		return serializePublicMenuItem(menuItem);
 	}
 
 	async update(
 		dto: UpdateMenuItemDto,
 		id: string,
 	): Promise<ProtectedMenuItemResponseDto> {
-		return await this.updateAndSerialize(this.sanitizeMenuItem(dto), id);
+		return this.updateAndSerialize(sanitizeMenuItem(dto), id);
 	}
 
 	async updateStock(
 		dto: UpdateMenuItemStockDto,
 		id: string,
 	): Promise<ProtectedMenuItemResponseDto> {
-		return await this.updateAndSerialize(dto, id);
+		return this.updateAndSerialize(dto, id);
 	}
 
 	async toggleVisibility(id: string): Promise<ProtectedMenuItemResponseDto> {
@@ -126,7 +124,7 @@ export class MenuItemsService {
 			publishedAt: !menuItem.publishedAt ? new Date() : undefined,
 		} satisfies Prisma.MenuItemUpdateInput;
 
-		return await this.updateAndSerialize(data, id);
+		return this.updateAndSerialize(data, id);
 	}
 
 	async archive(id: string): Promise<ProtectedMenuItemResponseDto> {
@@ -147,7 +145,7 @@ export class MenuItemsService {
 				where: { id },
 			});
 
-			return this.serializeProtectedMenuItem(menuItem);
+			return serializeProtectedMenuItem(menuItem);
 		});
 	}
 
@@ -162,64 +160,6 @@ export class MenuItemsService {
 		}
 
 		await this.prismaService.menuItem.delete({ where: { id } });
-	}
-
-	private toConditionalValue<TTrue, TFalse>(
-		value: boolean | undefined,
-		whenTrue: TTrue,
-		whenFalse: TFalse,
-	): TTrue | TFalse | undefined {
-		return value === undefined ? undefined : value ? whenTrue : whenFalse;
-	}
-
-	private serializeProtectedMenuItem(
-		menuItem: Prisma.MenuItemGetPayload<{ include: typeof include }>,
-	): ProtectedMenuItemResponseDto {
-		const { menuCategories: categories, price, ...rest } = menuItem;
-		return { ...rest, categories, price: price.toNumber() };
-	}
-
-	private serializePublicMenuItem(
-		menuItem: Prisma.MenuItemGetPayload<{
-			include: typeof include;
-			omit: typeof omit;
-		}>,
-	): PublicMenuItemResponseDto {
-		const { archivedAt, menuCategories: categories, price, ...rest } = menuItem;
-
-		return {
-			...rest,
-			categories,
-			isArchived: !!archivedAt,
-			price: price.toNumber(),
-		};
-	}
-
-	private sanitizeMenuItem(dto: Partial<CreateMenuItemDto>) {
-		const { categories, ...rest } = dto;
-
-		return {
-			...rest,
-			...(categories && {
-				menuCategories: { set: categories.map((id) => ({ id })) },
-			}),
-		} satisfies Prisma.MenuItemUpdateInput;
-	}
-
-	private getMenuItemsWhere(dto: FindManyMenuItemsDto) {
-		return {
-			...(dto.categories && {
-				menuCategories: { some: { name: { in: dto.categories } } },
-			}),
-			...(dto.search && {
-				OR: [
-					{ description: { contains: dto.search, mode: 'insensitive' } },
-					{ name: { contains: dto.search, mode: 'insensitive' } },
-				],
-			}),
-			inStock: this.toConditionalValue(dto.isInStock, { not: 0 }, 0),
-			isPreOrderOnly: dto.isPreOrderOnly,
-		} satisfies Prisma.MenuItemWhereInput;
 	}
 
 	private async getMenuItemStatus(id: string) {
@@ -249,6 +189,6 @@ export class MenuItemsService {
 			where: { id },
 		});
 
-		return this.serializeProtectedMenuItem(menuItem);
+		return serializeProtectedMenuItem(menuItem);
 	}
 }

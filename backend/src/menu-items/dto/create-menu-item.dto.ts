@@ -4,14 +4,15 @@ import {
 	IsBoolean,
 	IsInt,
 	IsNotEmpty,
-	IsNumber,
 	IsString,
 	IsUrl,
 	IsUUID,
+	Matches,
 	Max,
 	MaxLength,
 	Min,
 } from 'class-validator';
+import { REGEX_MIN_PRICE } from 'src/common/constants/regex.constants';
 import { ToTrimmed } from 'src/common/decorators/transform.decorators';
 
 export class CreateMenuItemDto {
@@ -45,7 +46,8 @@ export class CreateMenuItemDto {
 	@Min(5)
 	prepTime: number;
 
-	@IsNumber({ maxDecimalPlaces: 2 })
-	@Min(0.01)
-	price: number;
+	@IsString()
+	@IsNotEmpty()
+	@Matches(REGEX_MIN_PRICE)
+	price: string;
 }

@@ -18,13 +18,10 @@ import { MenuCategoryResponseDto } from './dto/menu-category-response.dto';
 import {
 	ApiDeleteAndConflict,
 	ApiGlobalErrors,
+	ApiUpdateResource,
 } from 'src/common/decorators/swagger.decorators';
-import {
-	ApiCreateMenuCategoryResource,
-	ApiFindPublicManyMenuCategoriesResource,
-	ApiUpdateMenuCategoryResource,
-} from './menu-categories.decorators';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiCreateMenuCategoryResource } from './menu-categories.decorators';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 @ApiGlobalErrors()
 @ApiTags('Menu Categories')
@@ -42,15 +39,15 @@ export class MenuCategoriesController {
 		return this.menuCategoriesService.create(body);
 	}
 
-	@ApiFindPublicManyMenuCategoriesResource()
-	@ApiOperation({ summary: 'Find all menu categories' })
+	@ApiOkResponse({ type: [MenuCategoryResponseDto] })
+	@ApiOperation({ summary: 'Find many public menu categories' })
 	@Get()
 	async findPublicMany(): Promise<MenuCategoryResponseDto[]> {
 		return this.menuCategoriesService.findPublicMany();
 	}
 
 	@ApiOperation({ summary: 'Update a menu category' })
-	@ApiUpdateMenuCategoryResource()
+	@ApiUpdateResource({ type: MenuCategoryResponseDto })
 	@Patch(':id')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async update(

@@ -31,7 +31,7 @@ export class Auth0ExceptionFilter implements ExceptionFilter {
 				message: ERROR_MESSAGES.CONFLICT_DUPLICATE,
 				statusCode: HttpStatus.CONFLICT,
 			},
-		};
+		} as const;
 
 		const auth0Error = errorMapper[`${exception.statusCode}`] ?? FALLBACK_ERROR;
 

@@ -5,22 +5,23 @@ import {
 	Patch,
 	Param,
 	BadRequestException,
+	Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { Requester } from 'src/common/decorators/requester.decorator';
 import type { RequestedBy } from 'src/common/types/roles.types';
+import { ApiProtectedUserResource } from './users.decorators';
 import {
-	ApiFindProtectedUserResource,
-	ApiFindPublicUserResource,
-	ApiUpdateUserProfileResource,
-} from './users.decorators';
-import { ApiGlobalErrors } from 'src/common/decorators/swagger.decorators';
+	ApiGlobalErrors,
+	ApiNotFoundAndOk,
+} from 'src/common/decorators/swagger.decorators';
 import { ProtectedUserResponseDto } from './dto/protected-user-response.dto';
 import { RequireAuth } from 'src/common/decorators/require-auth.decorator';
 import { PublicUserResponseDto } from './dto/public-user-response.dto';
 import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
+import { FindPublicManyUsersDto } from './dto/find-public-many-users.dto';
 
 @ApiGlobalErrors()
 @ApiTags('Users')
@@ -28,7 +29,16 @@ import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 export class UsersController {
 	constructor(private readonly usersService: UsersService) {}
 
-	@ApiFindProtectedUserResource()
+	@ApiOkResponse({ type: [PublicUserResponseDto] })
+	@ApiOperation({ summary: 'Find many public users' })
+	@Get()
+	async findPublicMany(
+		@Query() query: FindPublicManyUsersDto,
+	): Promise<PublicUserResponseDto[]> {
+		return this.usersService.findPublicMany(query);
+	}
+
+	@ApiProtectedUserResource()
 	@ApiOperation({ summary: 'Find a protected user' })
 	@Get('me')
 	@RequireAuth()
@@ -38,7 +48,7 @@ export class UsersController {
 		return this.usersService.findProtectedOne(requester.id);
 	}
 
-	@ApiFindPublicUserResource()
+	@ApiNotFoundAndOk({ type: PublicUserResponseDto })
 	@ApiOperation({ summary: 'Find a public user' })
 	@Get(':id')
 	async findPublicOne(@Param('id') id: string): Promise<PublicUserResponseDto> {
@@ -46,7 +56,7 @@ export class UsersController {
 	}
 
 	@ApiOperation({ summary: "Update a user's profile" })
-	@ApiUpdateUserProfileResource()
+	@ApiProtectedUserResource()
 	@Patch('me/profile')
 	@RequireAuth()
 	async updateProfile(

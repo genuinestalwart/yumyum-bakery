@@ -5,11 +5,13 @@ import { Requester } from 'src/common/decorators/requester.decorator';
 import { ROLES, type RequestedBy } from 'src/common/types/roles.types';
 import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
 import { ApiCreateEmployeeResource } from './employees.decorators';
-import { ApiUpdateUserResource } from 'src/users/users.decorators';
 import { UpdateEmployeeRoleDto } from './dto/update-employee-role.dto';
 import { ProtectedUserResponseDto } from 'src/users/dto/protected-user-response.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiGlobalErrors } from 'src/common/decorators/swagger.decorators';
+import {
+	ApiGlobalErrors,
+	ApiUpdateResource,
+} from 'src/common/decorators/swagger.decorators';
 
 @ApiGlobalErrors()
 @ApiTags('Employees')
@@ -29,7 +31,7 @@ export class EmployeesController {
 	}
 
 	@ApiOperation({ summary: "Update a MANAGER or STAFF's role" })
-	@ApiUpdateUserResource()
+	@ApiUpdateResource({ type: ProtectedUserResponseDto })
 	@Patch(':id/role')
 	@RequireRoles(ROLES.ADMIN)
 	async updateRole(
@@ -40,7 +42,7 @@ export class EmployeesController {
 	}
 
 	@ApiOperation({ summary: "Deactivate an MANAGER or STAFF's account" })
-	@ApiUpdateUserResource()
+	@ApiUpdateResource({ type: ProtectedUserResponseDto })
 	@Patch(':id/deactivate')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async deactivate(
@@ -51,7 +53,7 @@ export class EmployeesController {
 	}
 
 	@ApiOperation({ summary: "Reactivate an MANAGER or STAFF's account" })
-	@ApiUpdateUserResource()
+	@ApiUpdateResource({ type: ProtectedUserResponseDto })
 	@Patch(':id/reactivate')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async reactivate(
