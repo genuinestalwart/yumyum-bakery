@@ -1,18 +1,17 @@
 import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
-import { ApiGlobalErrors } from 'src/common/decorators/swagger.decorators';
+import {
+	ApiGlobalErrors,
+	ApiProtectedManyResource,
+	ApiProtectedOneResource,
+} from 'src/common/decorators/swagger.decorators';
 import { ROLES } from 'src/common/types/roles.types';
 import { FindProtectedManyMenuItemsDto } from 'src/menu-items/dto/find-protected-many-menu-items.dto';
 import { ProtectedMenuItemResponseDto } from 'src/menu-items/dto/protected-menu-item-response.dto';
-import {
-	ApiFindProtectedManyMenuItemsResource,
-	ApiFindProtectedOneMenuItemResource,
-} from 'src/menu-items/menu-items.decorators';
 import { MenuItemsService } from 'src/menu-items/menu-items.service';
 import { FindProtectedManyUsersDto } from 'src/users/dto/find-protected-many-users.dto';
 import { ProtectedUserResponseDto } from 'src/users/dto/protected-user-response.dto';
-import { ApiFindProtectedManyUsersResource } from 'src/users/users.decorators';
 import { UsersService } from 'src/users/users.service';
 
 @ApiGlobalErrors()
@@ -24,7 +23,7 @@ export class InternalController {
 		private readonly usersService: UsersService,
 	) {}
 
-	@ApiFindProtectedManyMenuItemsResource()
+	@ApiProtectedManyResource({ type: [ProtectedMenuItemResponseDto] })
 	@ApiOperation({ summary: 'Find many protected menu items' })
 	@ApiTags('Menu Items')
 	@Get('menu/items')
@@ -35,7 +34,7 @@ export class InternalController {
 		return this.menuItemsService.findProtectedMany(query);
 	}
 
-	@ApiFindProtectedOneMenuItemResource()
+	@ApiProtectedOneResource({ type: ProtectedMenuItemResponseDto })
 	@ApiOperation({ summary: 'Find a protected menu item' })
 	@ApiTags('Menu Items')
 	@Get('menu/items/:id')
@@ -46,7 +45,7 @@ export class InternalController {
 		return this.menuItemsService.findProtectedOne(id);
 	}
 
-	@ApiFindProtectedManyUsersResource()
+	@ApiProtectedManyResource({ type: [ProtectedUserResponseDto] })
 	@ApiOperation({ summary: 'Find many protected users' })
 	@ApiTags('Users')
 	@Get('users')

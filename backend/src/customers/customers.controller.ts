@@ -6,10 +6,11 @@ import {
 	Delete,
 	HttpCode,
 	HttpStatus,
+	Query,
+	Get,
 } from '@nestjs/common';
 import { CustomersService } from './customers.service';
 import { UpdateCustomerEmailDto } from './dto/update-customer-email.dto';
-import { ApiUpdateUserResource } from 'src/users/users.decorators';
 import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
 import { ROLES, type RequestedBy } from 'src/common/types/roles.types';
 import { Requester } from 'src/common/decorators/requester.decorator';
@@ -18,16 +19,35 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
 	ApiDeleteAndConflict,
 	ApiGlobalErrors,
+	ApiUpdateResource,
 } from 'src/common/decorators/swagger.decorators';
+import { ReviewsService } from 'src/reviews/reviews.service';
+import { FindPublicManyReviewsDto } from 'src/reviews/dto/find-public-many-reviews.dto';
+import { ReviewOfCustomerResponseDto } from 'src/reviews/dto/review-response.dto';
+import { ApiFindProtectedManyReviewsResource } from 'src/reviews/reviews.decorators';
 
 @ApiGlobalErrors()
 @ApiTags('Customers')
 @Controller('customers')
 export class CustomersController {
-	constructor(private readonly customersService: CustomersService) {}
+	constructor(
+		private readonly customersService: CustomersService,
+		private readonly reviewsService: ReviewsService,
+	) {}
+
+	@ApiFindProtectedManyReviewsResource()
+	@ApiOperation({ summary: 'Find many protected reviews of a CUSTOMER' })
+	@Get('me/reviews')
+	@RequireRoles(ROLES.CUSTOMER)
+	async findProtectedManyReviews(
+		@Query() query: FindPublicManyReviewsDto,
+		@Requester() requester: RequestedBy,
+	): Promise<ReviewOfCustomerResponseDto[]> {
+		return this.reviewsService.findProtectedMany(query, requester.id);
+	}
 
 	@ApiOperation({ summary: "Update a CUSTOMER's email address" })
-	@ApiUpdateUserResource()
+	@ApiUpdateResource({ type: ProtectedUserResponseDto })
 	@Patch('me/email')
 	@RequireRoles(ROLES.CUSTOMER)
 	async updateEmail(
@@ -38,7 +58,7 @@ export class CustomersController {
 	}
 
 	@ApiOperation({ summary: 'Ban a CUSTOMER' })
-	@ApiUpdateUserResource()
+	@ApiUpdateResource({ type: ProtectedUserResponseDto })
 	@Patch(':id/ban')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async ban(@Param('id') id: string): Promise<ProtectedUserResponseDto> {
@@ -46,7 +66,7 @@ export class CustomersController {
 	}
 
 	@ApiOperation({ summary: 'Unban a CUSTOMER' })
-	@ApiUpdateUserResource()
+	@ApiUpdateResource({ type: ProtectedUserResponseDto })
 	@Patch(':id/unban')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
 	async unban(@Param('id') id: string): Promise<ProtectedUserResponseDto> {

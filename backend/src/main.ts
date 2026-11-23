@@ -19,7 +19,7 @@ const bootstrap = async () => {
 	const config = new DocumentBuilder()
 		.addBearerAuth()
 		.setTitle('YumYum Bakery APIs')
-		.setVersion('v0.4.1')
+		.setVersion('v0.5.0')
 		.build();
 
 	// .../ControllerName/MethodName

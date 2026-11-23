@@ -75,7 +75,11 @@ export class OrdersService {
 			include,
 		});
 
-		return serializeOrder(order);
+		if (orderType === DELIVERY || orderType === PICKUP) {
+			await this.prismaService.cartItem.deleteMany({ where: { customerId } });
+		}
+
+		return serializeOrder(isCustomer, order);
 	}
 
 	async findProtectedMany(
@@ -84,7 +88,6 @@ export class OrdersService {
 		isCustomer: boolean,
 	): Promise<OrderResponseUnion[]> {
 		const defaultSortBy = dto.sortBy ?? SORT_BY.CREATED_AT;
-		const defaultSortOrder = dto.sortOrder ?? SORT_ORDER.DESC;
 		const max = dto.maxAmount ?? undefined;
 		const min = dto.minAmount ?? undefined;
 		const from = dto.fromCreatedAt ?? undefined;
@@ -94,7 +97,7 @@ export class OrdersService {
 
 		const orders = await this.prismaService.order.findMany({
 			include,
-			orderBy: { [defaultSortBy]: [defaultSortOrder] },
+			orderBy: { [defaultSortBy]: dto.sortOrder ?? SORT_ORDER.DESC },
 			skip: dto.page ? (dto.page - 1) * (dto.limit ?? 20) : 0,
 			take: dto.limit ?? 20,
 			where: {
@@ -114,9 +117,7 @@ export class OrdersService {
 			},
 		});
 
-		return orders.map((order) =>
-			serializeOrder(isCustomer ? order : { ...order, verificationCode: null }),
-		);
+		return orders.map((order) => serializeOrder(isCustomer, order));
 	}
 
 	async findProtectedOne(
@@ -129,9 +130,7 @@ export class OrdersService {
 			where: { id, customerId: isCustomer ? customerId : undefined },
 		});
 
-		return serializeOrder(
-			isCustomer ? order : { ...order, verificationCode: null },
-		);
+		return serializeOrder(isCustomer, order);
 	}
 
 	async updateStatus(
@@ -195,10 +194,7 @@ export class OrdersService {
 			where: { id },
 		});
 
-		return serializeOrder({
-			...updatedOrder,
-			verificationCode: null,
-		}) as OrderWithRiderResponseUnion;
+		return serializeOrder(false, updatedOrder) as OrderWithRiderResponseUnion;
 	}
 
 	/**
@@ -292,6 +288,6 @@ export class OrdersService {
 			where: { customerId, id },
 		});
 
-		return serializeOrder({ ...order, verificationCode: null });
+		return serializeOrder(false, order);
 	}
 }

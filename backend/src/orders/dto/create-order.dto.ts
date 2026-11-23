@@ -67,6 +67,7 @@ export class CreateOrderDto {
 	@IsEnum(OrderType)
 	orderType: OrderType;
 
+	@IsOptional()
 	@IsUUID()
 	subscriptionId?: string;
 }

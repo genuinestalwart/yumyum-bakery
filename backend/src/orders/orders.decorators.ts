@@ -78,12 +78,6 @@ export const ApiUpdateOrderStatusResource = () => {
 	);
 };
 
-export const ApiAcceptOrderResource = () => ApiUpdateOrderStatusResource();
-export const ApiRejectOrderResource = () => ApiUpdateOrderStatusResource();
-export const ApiCancelOrderResource = () => ApiUpdateOrderStatusResource();
-export const ApiFinishOrderResource = () => ApiUpdateOrderStatusResource();
-export const ApiFailOrderResource = () => ApiUpdateOrderStatusResource();
-
 export const ApiAssignRiderResource = () => {
 	return applyDecorators(
 		ApiExtraModels(DeliveryOrderResponseDto, SubscriptionOrderResponseDto),

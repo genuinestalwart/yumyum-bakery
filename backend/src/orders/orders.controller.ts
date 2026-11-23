@@ -6,6 +6,7 @@ import {
 	Patch,
 	Param,
 	Query,
+	ParseUUIDPipe,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -16,15 +17,10 @@ import { ApiGlobalErrors } from 'src/common/decorators/swagger.decorators';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RequireAuth } from 'src/common/decorators/require-auth.decorator';
 import {
-	ApiAcceptOrderResource,
 	ApiAssignRiderResource,
-	ApiCancelOrderResource,
 	ApiCreateOrderResource,
-	ApiFailOrderResource,
 	ApiFindProtectedManyOrdersResource,
 	ApiFindProtectedOneOrderResource,
-	ApiFinishOrderResource,
-	ApiRejectOrderResource,
 	ApiUpdateOrderStatusResource,
 } from './orders.decorators';
 import type {
@@ -77,7 +73,7 @@ export class OrdersController {
 	@Get(':id')
 	@RequireAuth()
 	async findProtectedOne(
-		@Param('id') id: string,
+		@Param('id', ParseUUIDPipe) id: string,
 		@Requester() requester: RequestedBy,
 	) {
 		const isCustomer = requester.role === ROLES.CUSTOMER;
@@ -90,54 +86,60 @@ export class OrdersController {
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
 	async updateStatus(
 		@Body() body: UpdateOrderStatusDto,
-		@Param('id') id: string,
+		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
 		return this.ordersService.updateStatus(id, body.orderStatus);
 	}
 
-	@ApiAcceptOrderResource()
+	@ApiUpdateOrderStatusResource()
 	@ApiOperation({ summary: 'Accept an order' })
 	@Patch(':id/accept')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
-	async accept(@Param('id') id: string): Promise<OrderResponseUnion> {
+	async accept(
+		@Param('id', ParseUUIDPipe) id: string,
+	): Promise<OrderResponseUnion> {
 		return this.ordersService.updateStatus(id, OrderStatus.ACCEPTED);
 	}
 
-	@ApiRejectOrderResource()
+	@ApiUpdateOrderStatusResource()
 	@ApiOperation({ summary: 'Reject an order' })
 	@Patch(':id/reject')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
-	async reject(@Param('id') id: string): Promise<OrderResponseUnion> {
+	async reject(
+		@Param('id', ParseUUIDPipe) id: string,
+	): Promise<OrderResponseUnion> {
 		return this.ordersService.updateStatus(id, OrderStatus.REJECTED);
 	}
 
-	@ApiFailOrderResource()
+	@ApiUpdateOrderStatusResource()
 	@ApiOperation({ summary: 'Mark an order as failed' })
 	@Patch(':id/fail')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
-	async fail(@Param('id') id: string): Promise<OrderResponseUnion> {
+	async fail(
+		@Param('id', ParseUUIDPipe) id: string,
+	): Promise<OrderResponseUnion> {
 		return this.ordersService.updateStatus(id, OrderStatus.FAILED);
 	}
 
-	@ApiCancelOrderResource()
+	@ApiUpdateOrderStatusResource()
 	@ApiOperation({ summary: 'Cancel an order' })
 	@Patch(':id/cancel')
 	@RequireAuth()
 	async cancel(
-		@Param('id') id: string,
+		@Param('id', ParseUUIDPipe) id: string,
 		@Requester() requester: RequestedBy,
 	): Promise<OrderResponseUnion> {
 		const isCustomer = requester.role === ROLES.CUSTOMER;
 		return this.ordersService.cancel(isCustomer ? requester.id : undefined, id);
 	}
 
-	@ApiFinishOrderResource()
+	@ApiUpdateOrderStatusResource()
 	@ApiOperation({ summary: 'Mark an order as finished' })
 	@Patch(':id/finish')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
 	async finish(
 		@Body() body: FinishOrderDto,
-		@Param('id') id: string,
+		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
 		return this.ordersService.finish(id, body.verificationCode);
 	}
@@ -148,7 +150,7 @@ export class OrdersController {
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
 	async assignRider(
 		@Body() body: AssignRiderDto,
-		@Param('id') id: string,
+		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderWithRiderResponseUnion> {
 		return this.ordersService.assignRider(id, body.riderId);
 	}

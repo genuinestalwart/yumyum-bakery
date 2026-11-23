@@ -23,6 +23,10 @@ const {
 
 export const include = {
 	orderedItems: { omit: { orderId: true } },
+	reviews: {
+		omit: { customerId: true, menuItemId: true, orderId: true },
+		take: 1,
+	},
 } satisfies Prisma.OrderInclude;
 
 export const firstAndLastStatuses: Record<OrderType, OrderStatus[]> = {
@@ -59,6 +63,7 @@ const serializeLocation = (
 };
 
 export const serializeOrder = (
+	isCustomer: boolean,
 	order: Prisma.OrderGetPayload<{ include: typeof include }>,
 ): OrderResponseUnion => {
 	const { customerId, riderId, subscriptionId, verificationCode } = order;
@@ -66,7 +71,11 @@ export const serializeOrder = (
 	return {
 		amount: order.amount.toFixed(2),
 		createdAt: order.createdAt,
-		...(order.orderType !== WALK_IN && { customerId, verificationCode }),
+		...(order.orderType !== WALK_IN && {
+			customerId,
+			review: order.reviews[0] ?? null,
+			verificationCode: isCustomer ? verificationCode : null,
+		}),
 		...serializeLocation(order),
 		id: order.id,
 		orderedItems: order.orderedItems.map(({ price, ...rest }) => {

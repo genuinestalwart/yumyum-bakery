@@ -21,24 +21,27 @@ import { UpdateMenuItemStockDto } from './dto/update-menu-item-stock.dto';
 import { ProtectedMenuItemResponseDto } from './dto/protected-menu-item-response.dto';
 import { PublicMenuItemResponseDto } from './dto/public-menu-item.response.dto';
 import { FindPublicManyMenuItemsDto } from './dto/find-public-many-menu-items.dto';
-import {
-	ApiCreateMenuItemResource,
-	ApiFindPublicManyMenuItemsResource,
-	ApiFindPublicOneMenuItemResource,
-} from './menu-items.decorators';
+import { ApiCreateMenuItemResource } from './menu-items.decorators';
 import {
 	ApiDeleteAndConflict,
 	ApiGlobalErrors,
+	ApiNotFoundAndOk,
 	ApiUpdateAndConflict,
 } from 'src/common/decorators/swagger.decorators';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ReviewsService } from 'src/reviews/reviews.service';
+import { FindPublicManyReviewsDto } from 'src/reviews/dto/find-public-many-reviews.dto';
+import { MenuItemReviewResponseDto } from 'src/reviews/dto/review-response.dto';
 
 @ApiGlobalErrors()
 @ApiTags('Menu Items')
 @Controller('menu/items')
 export class MenuItemsController {
-	constructor(private readonly menuItemsService: MenuItemsService) {}
+	constructor(
+		private readonly menuItemsService: MenuItemsService,
+		private readonly reviewsService: ReviewsService,
+	) {}
 
 	@ApiCreateMenuItemResource()
 	@ApiOperation({ summary: 'Create a new menu item' })
@@ -50,7 +53,7 @@ export class MenuItemsController {
 		return this.menuItemsService.create(body);
 	}
 
-	@ApiFindPublicManyMenuItemsResource()
+	@ApiOkResponse({ type: [PublicMenuItemResponseDto] })
 	@ApiOperation({ summary: 'Find many public menu items' })
 	@Get()
 	async findPublicMany(
@@ -59,7 +62,7 @@ export class MenuItemsController {
 		return this.menuItemsService.findPublicMany(query);
 	}
 
-	@ApiFindPublicOneMenuItemResource()
+	@ApiNotFoundAndOk({ type: PublicMenuItemResponseDto })
 	@ApiOperation({ summary: 'Find a public menu item' })
 	@Get(':id')
 	async findPublicOne(
@@ -68,7 +71,17 @@ export class MenuItemsController {
 		return this.menuItemsService.findPublicOne(id);
 	}
 
-	@ApiUpdateAndConflict()
+	@ApiOkResponse({ type: [MenuItemReviewResponseDto] })
+	@ApiOperation({ summary: 'Find many public reviews' })
+	@Get(':id/reviews')
+	async findPublicManyReviews(
+		@Param('id', ParseUUIDPipe) id: string,
+		@Query() query: FindPublicManyReviewsDto,
+	): Promise<MenuItemReviewResponseDto[]> {
+		return this.reviewsService.findPublicManyOfMenuItems(query, id);
+	}
+
+	@ApiUpdateAndConflict({ type: ProtectedMenuItemResponseDto })
 	@ApiOperation({ summary: 'Update a menu item' })
 	@Patch(':id')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)
@@ -83,7 +96,7 @@ export class MenuItemsController {
 		return this.menuItemsService.update(body, id);
 	}
 
-	@ApiUpdateAndConflict()
+	@ApiUpdateAndConflict({ type: ProtectedMenuItemResponseDto })
 	@ApiOperation({ summary: 'Update the stock of a menu item' })
 	@Patch(':id/stock')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
@@ -94,7 +107,7 @@ export class MenuItemsController {
 		return this.menuItemsService.updateStock(body, id);
 	}
 
-	@ApiUpdateAndConflict()
+	@ApiUpdateAndConflict({ type: ProtectedMenuItemResponseDto })
 	@ApiOperation({ summary: 'Toggle the visibility of a menu item' })
 	@Patch(':id/toggle-visibility')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER, ROLES.STAFF)
@@ -104,7 +117,7 @@ export class MenuItemsController {
 		return this.menuItemsService.toggleVisibility(id);
 	}
 
-	@ApiUpdateAndConflict()
+	@ApiUpdateAndConflict({ type: ProtectedMenuItemResponseDto })
 	@ApiOperation({ summary: 'Archive a menu item' })
 	@Patch(':id/archive')
 	@RequireRoles(ROLES.ADMIN, ROLES.MANAGER)

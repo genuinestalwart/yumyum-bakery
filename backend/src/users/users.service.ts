@@ -18,6 +18,7 @@ import { UpdateUserProfileDto } from './dto/update-user-profile.dto';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { serializeProtectedUser, serializePublicUser } from './users.utils';
 import { createLogger } from 'src/common/utils/logger.util';
+import { FindPublicManyUsersDto } from './dto/find-public-many-users.dto';
 
 @Injectable()
 export class UsersService {
@@ -58,6 +59,23 @@ export class UsersService {
 		});
 
 		return users.map((user) => serializeProtectedUser(user));
+	}
+
+	async findPublicMany(
+		dto: FindPublicManyUsersDto,
+	): Promise<PublicUserResponseDto[]> {
+		const { data: users } = await this.auth0Service.users.list({
+			fields: this.publicFields,
+			include_fields: true,
+			page: dto.page ? dto.page - 1 : 0,
+			per_page: dto.limit ?? 20,
+			primary_order: true,
+			q: `identities.connection:"${AUTH0_CONNECTION}" And (${dto.userIds.map((id) => `user_id:"${id}"`).join(' OR ')})`,
+			search_engine: 'v3',
+			sort: 'name:1',
+		});
+
+		return users.map((user) => serializePublicUser(user));
 	}
 
 	async findProtectedOne(id: string): Promise<ProtectedUserResponseDto> {

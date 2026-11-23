@@ -62,12 +62,11 @@ export class MenuItemsService {
 		const gte = dto.minPrice ? new Prisma.Decimal(dto.minPrice) : undefined;
 		const lte = dto.maxPrice ? new Prisma.Decimal(dto.maxPrice) : undefined;
 		const defaultSortBy = dto.sortBy ?? SORT_BY.POPULARITY;
-		const defaultSortOrder = dto.sortOrder ?? SORT_ORDER.DESC;
 
 		const menuItems = await this.prismaService.menuItem.findMany({
 			include,
 			omit,
-			orderBy: { [defaultSortBy]: defaultSortOrder },
+			orderBy: { [defaultSortBy]: dto.sortOrder ?? SORT_ORDER.DESC },
 			where: {
 				...getMenuItemsWhere(dto),
 				archivedAt: null,
