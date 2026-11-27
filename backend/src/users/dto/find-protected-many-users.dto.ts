@@ -14,6 +14,7 @@ import {
 	QueryToBoolean,
 	ToTrimmed,
 	ToTrimmedLowerCase,
+	ToTrimmedUpperCase,
 } from 'src/common/decorators/transform.decorators';
 
 export class FindProtectedManyUsersDto {
@@ -44,13 +45,13 @@ export class FindProtectedManyUsersDto {
 	@IsString()
 	search?: string;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_BY))
+	@IsIn(Object.keys(SORT_BY))
 	sortBy?: SortBy;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_ORDER))
+	@IsIn(Object.keys(SORT_ORDER))
 	sortOrder?: SortOrder;
 }

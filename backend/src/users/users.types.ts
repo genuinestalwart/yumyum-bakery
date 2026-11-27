@@ -5,4 +5,4 @@ export const SORT_BY = {
 	UPDATED_AT: 'updated_at',
 } as const;
 
-export type SortBy = (typeof SORT_BY)[keyof typeof SORT_BY];
+export type SortBy = keyof typeof SORT_BY;

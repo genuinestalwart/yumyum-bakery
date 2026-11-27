@@ -29,6 +29,8 @@ import { ROLES } from 'src/common/types/roles.types';
 import { FindProtectedManyOrdersDto } from './dto/find-protected-many-orders.dto';
 import { toConditionalValue } from 'src/common/utils/conditional.util';
 import { SORT_ORDER } from 'src/common/types/sorting.types';
+import { getSortOrder } from 'src/common/utils/sort-order.util';
+import { createLogger } from 'src/common/utils/logger.util';
 const { DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN } = OrderType;
 
 @Injectable()
@@ -37,6 +39,8 @@ export class OrdersService {
 		private readonly prismaService: PrismaService,
 		private readonly usersService: UsersService,
 	) {}
+
+	private readonly logger = createLogger(OrdersService.name);
 
 	async create(
 		customerId: string,
@@ -87,7 +91,7 @@ export class OrdersService {
 		dto: FindProtectedManyOrdersDto,
 		isCustomer: boolean,
 	): Promise<OrderResponseUnion[]> {
-		const defaultSortBy = dto.sortBy ?? SORT_BY.CREATED_AT;
+		const defaultSortBy = dto.sortBy ? SORT_BY[dto.sortBy] : SORT_BY.CREATED_AT;
 		const max = dto.maxAmount ?? undefined;
 		const min = dto.minAmount ?? undefined;
 		const from = dto.fromCreatedAt ?? undefined;
@@ -97,7 +101,7 @@ export class OrdersService {
 
 		const orders = await this.prismaService.order.findMany({
 			include,
-			orderBy: { [defaultSortBy]: dto.sortOrder ?? SORT_ORDER.DESC },
+			orderBy: { [defaultSortBy]: getSortOrder(dto.sortOrder) },
 			skip: dto.page ? (dto.page - 1) * (dto.limit ?? 20) : 0,
 			take: dto.limit ?? 20,
 			where: {
@@ -177,6 +181,7 @@ export class OrdersService {
 		const isValidStatus = orderStatus === READY || orderStatus === IN_TRANSIT;
 
 		if (!needsToBeDelivered(orderType) || !isValidStatus) {
+			this.logger.warn(`Rider can't be assigned to this order | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 
@@ -222,7 +227,7 @@ export class OrdersService {
 		}
 
 		if (orderType === WALK_IN || orderType === SUBSCRIPTION) {
-			if (!orderedItems || orderedItems.length === 0) {
+			if (!orderedItems) {
 				throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
 			}
 
@@ -270,6 +275,7 @@ export class OrdersService {
 		const isValidStatus = validateOrderStatus(next, orderStatus, orderType);
 
 		if (!isValidStatus || (isFinished && !isPaid)) {
+			this.logger.warn(`Invalid order status or not paid yet | ID: ${id}`);
 			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
 		}
 

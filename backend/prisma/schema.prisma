@@ -180,15 +180,9 @@ model Subscription {
   customerId String   @map("customer_id") @db.VarChar(250)
 
   // Mutable fields
-  isActive     Boolean  @default(true) @map("is_active") @db.Boolean
-  onMondays    Boolean  @map("on_mondays") @db.Boolean
-  onTuesdays   Boolean  @map("on_tuesdays") @db.Boolean
-  onWednesdays Boolean  @map("on_wednesdays") @db.Boolean
-  onThursdays  Boolean  @map("on_thursdays") @db.Boolean
-  onFridays    Boolean  @map("on_fridays") @db.Boolean
-  onSaturdays  Boolean  @map("on_saturdays") @db.Boolean
-  onSundays    Boolean  @map("on_sundays") @db.Boolean
-  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamp()
+  isActive   Boolean  @default(false) @map("is_active") @db.Boolean
+  isApproved Boolean  @default(false) @map("is_approved") @db.Boolean
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
   // Front relation fields
   orders            Order[]
@@ -202,6 +196,15 @@ model SubscriptionItem {
   // Immutable fields
   id       String @id @default(uuid()) @db.Uuid
   quantity Int    @db.Integer
+
+  // Mutable fields
+  onMondays    ScheduleSlot[] @default([]) @map("on_mondays")
+  onTuesdays   ScheduleSlot[] @default([]) @map("on_tuesdays")
+  onWednesdays ScheduleSlot[] @default([]) @map("on_wednesdays")
+  onThursdays  ScheduleSlot[] @default([]) @map("on_thursdays")
+  onFridays    ScheduleSlot[] @default([]) @map("on_fridays")
+  onSaturdays  ScheduleSlot[] @default([]) @map("on_saturdays")
+  onSundays    ScheduleSlot[] @default([]) @map("on_sundays")
 
   // Foreign keys
   menuItemId     String @map("menu_item_id") @db.Uuid
@@ -245,4 +248,32 @@ enum OrderStatus {
 enum PaymentStatus {
   PAID   @map("paid")
   UNPAID @map("unpaid")
+}
+
+enum ScheduleSlot {
+  SLOT_0900 @map("slot_0900")
+  SLOT_0930 @map("slot_0930")
+  SLOT_1000 @map("slot_1000")
+  SLOT_1030 @map("slot_1030")
+  SLOT_1100 @map("slot_1100")
+  SLOT_1130 @map("slot_1130")
+  SLOT_1200 @map("slot_1200")
+  SLOT_1230 @map("slot_1230")
+  SLOT_1300 @map("slot_1300")
+  SLOT_1330 @map("slot_1330")
+  SLOT_1400 @map("slot_1400")
+  SLOT_1430 @map("slot_1430")
+  SLOT_1500 @map("slot_1500")
+  SLOT_1530 @map("slot_1530")
+  SLOT_1600 @map("slot_1600")
+  SLOT_1630 @map("slot_1630")
+  SLOT_1700 @map("slot_1700")
+  SLOT_1730 @map("slot_1730")
+  SLOT_1800 @map("slot_1800")
+  SLOT_1830 @map("slot_1830")
+  SLOT_1900 @map("slot_1900")
+  SLOT_1930 @map("slot_1930")
+  SLOT_2000 @map("slot_2000")
+  SLOT_2030 @map("slot_2030")
+  SLOT_2100 @map("slot_2100")
 }

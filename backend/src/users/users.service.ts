@@ -19,6 +19,7 @@ import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { serializeProtectedUser, serializePublicUser } from './users.utils';
 import { createLogger } from 'src/common/utils/logger.util';
 import { FindPublicManyUsersDto } from './dto/find-public-many-users.dto';
+import { getSortOrder } from 'src/common/utils/sort-order.util';
 
 @Injectable()
 export class UsersService {
@@ -32,6 +33,7 @@ export class UsersService {
 		dto: FindProtectedManyUsersDto,
 	): Promise<ProtectedUserResponseDto[]> {
 		let query = `identities.connection:"${AUTH0_CONNECTION}"`;
+		const sortBy = dto.sortBy ? SORT_BY[dto.sortBy] : SORT_BY.NAME;
 
 		if (dto.isBlocked !== undefined) {
 			query += ` AND blocked:${dto.isBlocked}`;
@@ -55,7 +57,7 @@ export class UsersService {
 			primary_order: true,
 			q: query,
 			search_engine: 'v3',
-			sort: `${dto.sortBy ?? SORT_BY.NAME}:${dto.sortOrder === 'desc' ? -1 : 1}`,
+			sort: `${sortBy}:${getSortOrder(dto.sortOrder) === 'desc' ? -1 : 1}`,
 		});
 
 		return users.map((user) => serializeProtectedUser(user));

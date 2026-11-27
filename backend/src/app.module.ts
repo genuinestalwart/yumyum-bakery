@@ -13,6 +13,7 @@ import { OrdersModule } from './orders/orders.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 
 @Module({
 	imports: [
@@ -28,6 +29,7 @@ import { ReviewsModule } from './reviews/reviews.module';
 		PrismaModule,
 		UsersModule,
 		ReviewsModule,
+		SubscriptionsModule,
 	],
 	controllers: [AppController],
 	providers: [AppService],

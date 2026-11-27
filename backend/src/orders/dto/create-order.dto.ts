@@ -1,4 +1,7 @@
+import { Type } from 'class-transformer';
 import {
+	ArrayNotEmpty,
+	IsArray,
 	IsEnum,
 	IsInt,
 	IsNotEmpty,
@@ -9,6 +12,7 @@ import {
 	Max,
 	MaxLength,
 	Min,
+	ValidateNested,
 } from 'class-validator';
 import { OrderType } from 'prisma/generated/enums';
 import {
@@ -61,6 +65,10 @@ export class CreateOrderDto {
 	deliveryLongitude?: number;
 
 	@IsOptional()
+	@IsArray()
+	@ArrayNotEmpty()
+	@Type(() => CreateOrderedItemDto)
+	@ValidateNested({ each: true })
 	orderedItems?: CreateOrderedItemDto[];
 
 	@ToTrimmedUpperCase()

@@ -9,7 +9,7 @@ import {
 	Max,
 	Min,
 } from 'class-validator';
-import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
+import { ToTrimmedUpperCase } from 'src/common/decorators/transform.decorators';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import { SORT_BY, type SortBy } from '../menu-items.types';
 import { FindManyMenuItemsDto } from './find-many-menu-items.dto';
@@ -45,13 +45,13 @@ export class FindPublicManyMenuItemsDto extends FindManyMenuItemsDto {
 	@Matches(REGEX_MIN_PRICE)
 	minPrice?: string;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_BY))
+	@IsIn(Object.keys(SORT_BY))
 	sortBy?: SortBy;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_ORDER))
+	@IsIn(Object.keys(SORT_ORDER))
 	sortOrder?: SortOrder;
 }
