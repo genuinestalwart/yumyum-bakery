@@ -21,6 +21,7 @@ import {
 	serializePublicMenuItem,
 } from './menu-items.utils';
 import { toConditionalValue } from 'src/common/utils/conditional.util';
+import { getSortOrder } from 'src/common/utils/sort-order.util';
 
 @Injectable()
 export class MenuItemsService {
@@ -61,12 +62,12 @@ export class MenuItemsService {
 		const prepTimeRange = { gte: minPrepTime, lte: maxPrepTime };
 		const gte = dto.minPrice ? new Prisma.Decimal(dto.minPrice) : undefined;
 		const lte = dto.maxPrice ? new Prisma.Decimal(dto.maxPrice) : undefined;
-		const defaultSortBy = dto.sortBy ?? SORT_BY.POPULARITY;
+		const defaultSortBy = dto.sortBy ? SORT_BY[dto.sortBy] : SORT_BY.POPULARITY;
 
 		const menuItems = await this.prismaService.menuItem.findMany({
 			include,
 			omit,
-			orderBy: { [defaultSortBy]: dto.sortOrder ?? SORT_ORDER.DESC },
+			orderBy: { [defaultSortBy]: getSortOrder(dto.sortOrder) },
 			where: {
 				...getMenuItemsWhere(dto),
 				archivedAt: null,
@@ -137,7 +138,7 @@ export class MenuItemsService {
 
 		return await this.prismaService.$transaction(async (tx) => {
 			await tx.cartItem.deleteMany({ where: { menuItemId: id } });
-			// implement subscriptionItem removal logic and its consequences here
+			await tx.subscriptionItem.deleteMany({ where: { menuItemId: id } });
 
 			const menuItem = await tx.menuItem.update({
 				data: { archivedAt: new Date(), inStock: 0, isVisible: false },

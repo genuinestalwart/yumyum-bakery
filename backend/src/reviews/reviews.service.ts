@@ -16,6 +16,7 @@ import {
 	ReviewResponseDto,
 } from './dto/review-response.dto';
 import { Prisma } from 'prisma/generated/client';
+import { getSortOrder } from 'src/common/utils/sort-order.util';
 
 @Injectable()
 export class ReviewsService {
@@ -120,7 +121,7 @@ export class ReviewsService {
 	): Promise<ReviewResponseDto[]> {
 		return this.prismaService.review.findMany({
 			omit,
-			orderBy: { createdAt: dto.sortOrder ?? SORT_ORDER.DESC },
+			orderBy: { createdAt: getSortOrder(dto.sortOrder) },
 			skip: dto.page ? (dto.page - 1) * (dto.limit ?? 20) : 0,
 			take: dto.limit ?? 20,
 			where,

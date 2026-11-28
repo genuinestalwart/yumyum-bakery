@@ -1,5 +1,5 @@
 import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
-import { ToTrimmedLowerCase } from 'src/common/decorators/transform.decorators';
+import { ToTrimmedUpperCase } from 'src/common/decorators/transform.decorators';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import { Type } from 'class-transformer';
 
@@ -17,8 +17,8 @@ export class FindPublicManyReviewsDto {
 	@Min(1)
 	page?: number;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_ORDER))
+	@IsIn(Object.keys(SORT_ORDER))
 	sortOrder?: SortOrder;
 }

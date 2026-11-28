@@ -27,7 +27,7 @@ export const SORT_BY = {
 	CREATED_AT: 'createdAt',
 } as const;
 
-export type SortBy = (typeof SORT_BY)[keyof typeof SORT_BY];
+export type SortBy = keyof typeof SORT_BY;
 
 export const QUERY_STATUSES = {
 	ACCEPTED,
@@ -38,4 +38,4 @@ export const QUERY_STATUSES = {
 	REJECTED,
 } as const;
 
-export type QueryStatus = (typeof QUERY_STATUSES)[keyof typeof QUERY_STATUSES];
+export type QueryStatus = keyof typeof QUERY_STATUSES;

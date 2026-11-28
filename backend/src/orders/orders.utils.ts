@@ -59,7 +59,7 @@ const serializeLocation = (
 				deliveryPostalCode: deliveryPostalCode!,
 				deliveryStreet: deliveryStreet!,
 			}
-		: {};
+		: undefined;
 };
 
 export const serializeOrder = (
@@ -76,7 +76,7 @@ export const serializeOrder = (
 			review: order.reviews[0] ?? null,
 			verificationCode: isCustomer ? verificationCode : null,
 		}),
-		...serializeLocation(order),
+		location: serializeLocation(order),
 		id: order.id,
 		orderedItems: order.orderedItems.map(({ price, ...rest }) => {
 			return { price: price.toFixed(2), ...rest };

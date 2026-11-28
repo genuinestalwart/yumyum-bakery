@@ -19,12 +19,12 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
 	ApiDeleteAndConflict,
 	ApiGlobalErrors,
+	ApiProtectedManyResource,
 	ApiUpdateResource,
 } from 'src/common/decorators/swagger.decorators';
 import { ReviewsService } from 'src/reviews/reviews.service';
 import { FindPublicManyReviewsDto } from 'src/reviews/dto/find-public-many-reviews.dto';
 import { ReviewOfCustomerResponseDto } from 'src/reviews/dto/review-response.dto';
-import { ApiFindProtectedManyReviewsResource } from 'src/reviews/reviews.decorators';
 
 @ApiGlobalErrors()
 @ApiTags('Customers')
@@ -35,7 +35,7 @@ export class CustomersController {
 		private readonly reviewsService: ReviewsService,
 	) {}
 
-	@ApiFindProtectedManyReviewsResource()
+	@ApiProtectedManyResource({ type: [ReviewOfCustomerResponseDto] })
 	@ApiOperation({ summary: 'Find many protected reviews of a CUSTOMER' })
 	@Get('me/reviews')
 	@RequireRoles(ROLES.CUSTOMER)

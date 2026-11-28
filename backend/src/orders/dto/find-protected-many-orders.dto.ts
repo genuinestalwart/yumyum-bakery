@@ -24,7 +24,7 @@ import {
 	QueryToArray,
 	QueryToBoolean,
 	ToTrimmed,
-	ToTrimmedLowerCase,
+	ToTrimmedUpperCase,
 } from 'src/common/decorators/transform.decorators';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 import {
@@ -91,21 +91,21 @@ export class FindProtectedManyOrdersDto {
 	@IsNotEmpty()
 	riderId?: string;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_BY))
+	@IsIn(Object.keys(SORT_BY))
 	sortBy?: SortBy;
 
-	@ToTrimmedLowerCase()
+	@ToTrimmedUpperCase()
 	@IsOptional()
-	@IsIn(Object.values(SORT_ORDER))
+	@IsIn(Object.keys(SORT_ORDER))
 	sortOrder?: SortOrder;
 
 	@QueryToArray()
 	@IsOptional()
 	@IsArray()
 	@ArrayNotEmpty()
-	@IsIn(Object.values(QUERY_STATUSES), { each: true })
+	@IsIn(Object.keys(QUERY_STATUSES), { each: true })
 	statuses?: QueryStatus[];
 
 	@IsOptional()
