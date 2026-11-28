@@ -16,7 +16,7 @@ import {
 	ToTrimmed,
 	ToTrimmedLowerCase,
 } from 'src/common/decorators/transform.decorators';
-import { ON_DAYS, OnDays } from '../subscriptions.types';
+import { WEEK_DAYS, type WeekDay } from '../subscriptions.types';
 import { SORT_ORDER, type SortOrder } from 'src/common/types/sorting.types';
 
 export class FindProtectedManySubscriptionsDto {
@@ -30,8 +30,8 @@ export class FindProtectedManySubscriptionsDto {
 	@IsOptional()
 	@IsArray()
 	@ArrayNotEmpty()
-	@IsIn(Object.keys(ON_DAYS), { each: true })
-	days?: OnDays[];
+	@IsIn(Object.keys(WEEK_DAYS), { each: true })
+	days?: WeekDay[];
 
 	@QueryToBoolean()
 	@IsOptional()

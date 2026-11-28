@@ -1,5 +1,6 @@
 import { ApiResponseProperty, OmitType } from '@nestjs/swagger';
 import { ScheduleSlot } from 'prisma/generated/enums';
+import { LocationResponseDto } from 'src/common/dto/location-response.dto';
 import { OrderedItemResponseDto } from 'src/orders/dto/order-response.dto';
 
 export class SubscriptionItemResponseDto extends OmitType(
@@ -43,6 +44,8 @@ export class SubscriptionResponseDto {
 
 	@ApiResponseProperty({ type: 'boolean' })
 	isApproved: boolean;
+
+	location: LocationResponseDto;
 
 	subscriptionItems: SubscriptionItemResponseDto[];
 

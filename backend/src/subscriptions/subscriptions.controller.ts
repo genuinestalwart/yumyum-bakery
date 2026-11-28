@@ -11,8 +11,8 @@ import {
 	HttpStatus,
 	Query,
 } from '@nestjs/common';
-import { SubscriptionsService } from './subscriptions.service';
-import { SubscriptionDto } from './dto/subscription.dto';
+import { SubscriptionsService } from './services/subscriptions.service';
+import { CreateSubscriptionDto } from './dto/create-subscription.dto';
 import { Requester } from 'src/common/decorators/requester.decorator';
 import { type RequestedBy, ROLES } from 'src/common/types/roles.types';
 import { RequireRoles } from 'src/common/decorators/require-roles.decorator';
@@ -30,6 +30,7 @@ import {
 	ApiFindProtectedManySubscriptionsResource,
 	ApiFindProtectedOneSubscriptionResource,
 } from './subscriptions.decorators';
+import { UpdateSubscriptionDto } from './dto/update-subscription.dto';
 
 @ApiGlobalErrors()
 @ApiTags('Subscriptions')
@@ -42,7 +43,7 @@ export class SubscriptionsController {
 	@Post()
 	@RequireRoles(ROLES.CUSTOMER)
 	async create(
-		@Body() body: SubscriptionDto,
+		@Body() body: CreateSubscriptionDto,
 		@Requester() requester: RequestedBy,
 	): Promise<SubscriptionResponseDto> {
 		return this.subscriptionsService.create(requester.id, body);
@@ -79,7 +80,7 @@ export class SubscriptionsController {
 	@Patch(':id')
 	@RequireRoles(ROLES.CUSTOMER)
 	async update(
-		@Body() body: SubscriptionDto,
+		@Body() body: UpdateSubscriptionDto,
 		@Param('id', ParseUUIDPipe) id: string,
 		@Requester() requester: RequestedBy,
 	): Promise<SubscriptionResponseDto> {

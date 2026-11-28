@@ -14,6 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { UsersModule } from './users/users.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
 	imports: [
@@ -29,6 +30,7 @@ import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 		PrismaModule,
 		UsersModule,
 		ReviewsModule,
+		ScheduleModule.forRoot(),
 		SubscriptionsModule,
 	],
 	controllers: [AppController],

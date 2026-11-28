@@ -3,15 +3,19 @@ import {
 	ForbiddenException,
 	Injectable,
 } from '@nestjs/common';
-import { SubscriptionDto } from './dto/subscription.dto';
+import {
+	CreateSubscriptionDto,
+	SubscriptionItemDto,
+} from '../dto/create-subscription.dto';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { SubscriptionResponseDto } from './dto/subscription-response.dto';
-import { include } from './subscriptions.utils';
+import { SubscriptionResponseDto } from '../dto/subscription-response.dto';
+import { include, serializeSubscription } from '../subscriptions.utils';
 import { Prisma } from 'prisma/generated/client';
-import { FindProtectedManySubscriptionsDto } from './dto/find-protected-many-subscriptions.dto';
+import { FindProtectedManySubscriptionsDto } from '../dto/find-protected-many-subscriptions.dto';
 import { getSortOrder } from 'src/common/utils/sort-order.util';
-import { ON_DAYS } from './subscriptions.types';
+import { WEEK_DAYS } from '../subscriptions.types';
+import { UpdateSubscriptionDto } from '../dto/update-subscription.dto';
 
 @Injectable()
 export class SubscriptionsService {
@@ -19,15 +23,17 @@ export class SubscriptionsService {
 
 	async create(
 		customerId: string,
-		dto: SubscriptionDto,
+		dto: CreateSubscriptionDto,
 	): Promise<SubscriptionResponseDto> {
-		const { subscriptionItems } = dto;
-		this.ensureAtLeastOneSlot(dto);
+		const { subscriptionItems: items, location } = dto;
+		this.ensureAtLeastOneSlot(items);
 
-		return this.prismaService.subscription.create({
-			data: { customerId, subscriptionItems: { create: subscriptionItems } },
+		const subscription = await this.prismaService.subscription.create({
+			data: { customerId, ...location, subscriptionItems: { create: items } },
 			include,
 		});
+
+		return serializeSubscription(subscription);
 	}
 
 	async findProtectedMany(
@@ -37,16 +43,16 @@ export class SubscriptionsService {
 		const hasItemFilters = dto.days || dto.menuItems || dto.slots;
 
 		const queryDays = dto.days
-			? dto.days.map((day) => ON_DAYS[day])
+			? dto.days.map((day) => WEEK_DAYS[day])
 			: dto.slots
-				? Object.values(ON_DAYS)
+				? Object.values(WEEK_DAYS)
 				: [];
 
 		const dayFilters = queryDays.map((day) => ({
 			[day]: dto.slots ? { hasSome: dto.slots } : { isEmpty: false },
 		}));
 
-		return this.prismaService.subscription.findMany({
+		const subscriptions = await this.prismaService.subscription.findMany({
 			include,
 			orderBy: { createdAt: getSortOrder(dto.sortOrder) },
 			where: {
@@ -63,53 +69,43 @@ export class SubscriptionsService {
 					: undefined,
 			},
 		});
+
+		return subscriptions.map((sub) => serializeSubscription(sub));
 	}
 
 	async findProtectedOne(
 		id: string,
 		customerId?: string,
 	): Promise<SubscriptionResponseDto> {
-		return this.prismaService.subscription.findUniqueOrThrow({
+		const sub = await this.prismaService.subscription.findUniqueOrThrow({
 			include,
 			where: { customerId, id },
 		});
+
+		return serializeSubscription(sub);
 	}
 
 	async update(
 		customerId: string,
-		dto: SubscriptionDto,
+		dto: UpdateSubscriptionDto,
 		id: string,
 	): Promise<SubscriptionResponseDto> {
-		const { subscriptionItems: newItems } = dto;
-		const newMenuItemIds = newItems.map(({ menuItemId }) => menuItemId);
-		this.ensureAtLeastOneSlot(dto);
+		const { subscriptionItems: items, location } = dto;
 
-		const { subscriptionItems: oldItems } =
-			await this.prismaService.subscription.findUniqueOrThrow({
-				select: { subscriptionItems: { select: { menuItemId: true } } },
-				where: { customerId, id },
-			});
+		if (!items && !location) {
+			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
+		}
 
-		const itemsToDelete = oldItems
-			.filter((item) => !newMenuItemIds.includes(item.menuItemId))
-			.map((item) => item.menuItemId);
+		const subscriptionItems = items
+			? await this.sanitizeSubscriptionItems(customerId, id, items)
+			: undefined;
 
 		return this.updateAndSerialize(
 			{
 				isActive: false,
 				isApproved: false,
-				subscriptionItems: {
-					upsert: newItems.map(({ menuItemId, quantity, ...days }) => ({
-						create: { menuItemId, quantity, ...days },
-						update: { menuItemId, quantity, ...days },
-						where: {
-							subscriptionId_menuItemId: { menuItemId, subscriptionId: id },
-						},
-					})),
-					...(itemsToDelete.length > 0 && {
-						deleteMany: { menuItemId: { in: itemsToDelete } },
-					}),
-				},
+				...(location ?? {}),
+				subscriptionItems,
 			},
 			id,
 		);
@@ -149,8 +145,8 @@ export class SubscriptionsService {
 		await this.prismaService.subscription.delete({ where: { customerId, id } });
 	}
 
-	private ensureAtLeastOneSlot(dto: SubscriptionDto) {
-		for (const item of dto.subscriptionItems) {
+	private ensureAtLeastOneSlot(items: SubscriptionItemDto[]) {
+		for (const item of items) {
 			const hasAtLeastOneSlot = Object.values(item).some(
 				(value) => Array.isArray(value) && value.length !== 0,
 			);
@@ -161,14 +157,48 @@ export class SubscriptionsService {
 		}
 	}
 
+	private async sanitizeSubscriptionItems(
+		customerId: string,
+		id: string,
+		newItems: SubscriptionItemDto[],
+	): Promise<Prisma.SubscriptionItemUpdateManyWithoutSubscriptionNestedInput> {
+		const newMenuItemIds = newItems.map(({ menuItemId }) => menuItemId);
+		this.ensureAtLeastOneSlot(newItems);
+
+		const { subscriptionItems: oldItems } =
+			await this.prismaService.subscription.findUniqueOrThrow({
+				select: { subscriptionItems: { select: { menuItemId: true } } },
+				where: { customerId, id },
+			});
+
+		const itemsToDelete = oldItems
+			.filter((item) => !newMenuItemIds.includes(item.menuItemId))
+			.map((item) => item.menuItemId);
+
+		return {
+			upsert: newItems.map(({ menuItemId, quantity, ...days }) => ({
+				create: { menuItemId, quantity, ...days },
+				update: { menuItemId, quantity, ...days },
+				where: {
+					subscriptionId_menuItemId: { menuItemId, subscriptionId: id },
+				},
+			})),
+			...(itemsToDelete.length > 0 && {
+				deleteMany: { menuItemId: { in: itemsToDelete } },
+			}),
+		};
+	}
+
 	private async updateAndSerialize(
 		data: Prisma.SubscriptionUpdateInput,
 		id: string,
 	): Promise<SubscriptionResponseDto> {
-		return this.prismaService.subscription.update({
+		const subscription = await this.prismaService.subscription.update({
 			data,
 			include,
 			where: { id },
 		});
+
+		return serializeSubscription(subscription);
 	}
 }

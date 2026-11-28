@@ -3,6 +3,7 @@ import { CreateOrderedItemDto } from 'src/orders/dto/create-order.dto';
 import { IsArrayOfScheduleSlots } from '../subscriptions.decorators';
 import { ArrayNotEmpty, IsArray, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { LocationDto } from 'src/common/dto/location.dto';
 
 export class SubscriptionItemDto extends CreateOrderedItemDto {
 	@IsArrayOfScheduleSlots()
@@ -27,7 +28,9 @@ export class SubscriptionItemDto extends CreateOrderedItemDto {
 	onSundays?: ScheduleSlot[];
 }
 
-export class SubscriptionDto {
+export class CreateSubscriptionDto {
+	location: LocationDto;
+
 	@IsArray()
 	@ArrayNotEmpty()
 	@Type(() => SubscriptionItemDto)

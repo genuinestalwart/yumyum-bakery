@@ -4,7 +4,7 @@ import {
 	Injectable,
 	NotFoundException,
 } from '@nestjs/common';
-import { CreateOrderDto, CreateOrderedItemDto } from './dto/create-order.dto';
+import { CreateOrderDto, CreateOrderedItemDto } from '../dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { OrderStatus, OrderType, PaymentStatus } from 'prisma/generated/enums';
 import { ERROR_MESSAGES } from 'src/common/constants/errors.constants';
@@ -14,21 +14,18 @@ import {
 	OrderWithRiderResponseUnion,
 	ProxyCartItem,
 	SORT_BY,
-} from './orders.types';
+} from '../orders.types';
 import { UsersService } from 'src/users/users.service';
 import {
-	validateOrderStatus,
 	firstAndLastStatuses,
-	generateVerificationCode,
 	include,
 	needsToBeDelivered,
 	sanitizeOrderStatuses,
 	serializeOrder,
-} from './orders.utils';
+} from '../orders.utils';
 import { ROLES } from 'src/common/types/roles.types';
-import { FindProtectedManyOrdersDto } from './dto/find-protected-many-orders.dto';
+import { FindProtectedManyOrdersDto } from '../dto/find-protected-many-orders.dto';
 import { toConditionalValue } from 'src/common/utils/conditional.util';
-import { SORT_ORDER } from 'src/common/types/sorting.types';
 import { getSortOrder } from 'src/common/utils/sort-order.util';
 import { createLogger } from 'src/common/utils/logger.util';
 const { DELIVERY, PICKUP, SUBSCRIPTION, WALK_IN } = OrderType;
@@ -47,11 +44,11 @@ export class OrdersService {
 		dto: CreateOrderDto,
 		isCustomer: boolean,
 	): Promise<OrderResponseUnion> {
-		const { orderedItems, orderType, subscriptionId, ...location } = dto;
+		const { orderedItems, orderType, subscriptionId, location } = dto;
 
 		if (
 			(orderType === SUBSCRIPTION && !subscriptionId) ||
-			(needsToBeDelivered(orderType) && Object.keys(location).length < 5) ||
+			(needsToBeDelivered(orderType) && !location) ||
 			(!isCustomer && orderType !== WALK_IN) ||
 			(isCustomer && orderType !== DELIVERY && orderType !== PICKUP)
 		) {
@@ -71,7 +68,7 @@ export class OrdersService {
 					new Prisma.Decimal(0),
 				),
 				customerId: orderType === OrderType.WALK_IN ? undefined : customerId,
-				...(needsToBeDelivered(orderType) && location),
+				...(needsToBeDelivered(orderType) && location ? location : {}),
 				orderedItems: { create: sanitizedOrderedItems },
 				orderType,
 				orderStatus: firstAndLastStatuses[orderType][0],
@@ -135,36 +132,6 @@ export class OrdersService {
 		});
 
 		return serializeOrder(isCustomer, order);
-	}
-
-	async updateStatus(
-		id: string,
-		next: OrderStatus,
-	): Promise<OrderResponseUnion> {
-		await this.ensureValidStatus(id, next);
-		const isReady = next === OrderStatus.READY;
-		const code = isReady ? generateVerificationCode() : undefined;
-		return this.updateAndSerialize(undefined, id, next, code);
-	}
-
-	async cancel(
-		customerId: string | undefined,
-		id: string,
-	): Promise<OrderResponseUnion> {
-		const next = OrderStatus.CANCELLED;
-		await this.ensureValidStatus(id, next);
-		return this.updateAndSerialize(customerId, id, next, undefined);
-	}
-
-	async finish(id: string, code?: string) {
-		const order = await this.ensureValidStatus(id, 'FINISHED');
-		const needsVerification = order.orderType !== OrderType.WALK_IN;
-
-		if (needsVerification && (!code || code !== order.verificationCode)) {
-			throw new BadRequestException(ERROR_MESSAGES.BAD_REQUEST);
-		}
-
-		return this.updateAndSerialize(undefined, id, order.next, null);
 	}
 
 	async assignRider(
@@ -252,48 +219,5 @@ export class OrdersService {
 		}
 
 		return cartItems.map(({ inStock, ...rest }) => rest);
-	}
-
-	private async ensureValidStatus(
-		id: string,
-		status: OrderStatus | 'FINISHED',
-	) {
-		const order = await this.prismaService.order.findUniqueOrThrow({
-			select: {
-				orderStatus: true,
-				orderType: true,
-				paymentStatus: true,
-				verificationCode: true,
-			},
-			where: { id },
-		});
-
-		const { orderStatus, orderType, verificationCode } = order;
-		const isFinished = status === 'FINISHED';
-		const isPaid = order.paymentStatus === PaymentStatus.PAID;
-		const next = isFinished ? firstAndLastStatuses[orderType][1] : status;
-		const isValidStatus = validateOrderStatus(next, orderStatus, orderType);
-
-		if (!isValidStatus || (isFinished && !isPaid)) {
-			this.logger.warn(`Invalid order status or not paid yet | ID: ${id}`);
-			throw new ConflictException(ERROR_MESSAGES.CONFLICT_STATE);
-		}
-
-		return { next, orderType, verificationCode };
-	}
-
-	private async updateAndSerialize(
-		customerId: string | undefined,
-		id: string,
-		orderStatus: OrderStatus,
-		verificationCode: string | null | undefined,
-	): Promise<OrderResponseUnion> {
-		const order = await this.prismaService.order.update({
-			data: { orderStatus, verificationCode },
-			include,
-			where: { customerId, id },
-		});
-
-		return serializeOrder(false, order);
 	}
 }

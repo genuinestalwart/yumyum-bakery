@@ -8,7 +8,8 @@ import {
 	Query,
 	ParseUUIDPipe,
 } from '@nestjs/common';
-import { OrdersService } from './orders.service';
+import { OrdersService } from './services/orders.service';
+import { StatusesService } from './services/statuses.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Requester } from 'src/common/decorators/requester.decorator';
 import { ROLES, type RequestedBy } from 'src/common/types/roles.types';
@@ -37,7 +38,10 @@ import { FindProtectedManyOrdersDto } from './dto/find-protected-many-orders.dto
 @ApiTags('Orders')
 @Controller('orders')
 export class OrdersController {
-	constructor(private readonly ordersService: OrdersService) {}
+	constructor(
+		private readonly ordersService: OrdersService,
+		private readonly statusesService: StatusesService,
+	) {}
 
 	@ApiCreateOrderResource()
 	@ApiOperation({ summary: 'Create a new order' })
@@ -88,7 +92,7 @@ export class OrdersController {
 		@Body() body: UpdateOrderStatusDto,
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
-		return this.ordersService.updateStatus(id, body.orderStatus);
+		return this.statusesService.updateStatus(id, body.orderStatus);
 	}
 
 	@ApiUpdateOrderStatusResource()
@@ -98,7 +102,7 @@ export class OrdersController {
 	async accept(
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
-		return this.ordersService.updateStatus(id, OrderStatus.ACCEPTED);
+		return this.statusesService.updateStatus(id, OrderStatus.ACCEPTED);
 	}
 
 	@ApiUpdateOrderStatusResource()
@@ -108,7 +112,7 @@ export class OrdersController {
 	async reject(
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
-		return this.ordersService.updateStatus(id, OrderStatus.REJECTED);
+		return this.statusesService.updateStatus(id, OrderStatus.REJECTED);
 	}
 
 	@ApiUpdateOrderStatusResource()
@@ -118,7 +122,7 @@ export class OrdersController {
 	async fail(
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
-		return this.ordersService.updateStatus(id, OrderStatus.FAILED);
+		return this.statusesService.updateStatus(id, OrderStatus.FAILED);
 	}
 
 	@ApiUpdateOrderStatusResource()
@@ -130,7 +134,10 @@ export class OrdersController {
 		@Requester() requester: RequestedBy,
 	): Promise<OrderResponseUnion> {
 		const isCustomer = requester.role === ROLES.CUSTOMER;
-		return this.ordersService.cancel(isCustomer ? requester.id : undefined, id);
+		return this.statusesService.cancel(
+			isCustomer ? requester.id : undefined,
+			id,
+		);
 	}
 
 	@ApiUpdateOrderStatusResource()
@@ -141,7 +148,7 @@ export class OrdersController {
 		@Body() body: FinishOrderDto,
 		@Param('id', ParseUUIDPipe) id: string,
 	): Promise<OrderResponseUnion> {
-		return this.ordersService.finish(id, body.verificationCode);
+		return this.statusesService.finish(id, body.verificationCode);
 	}
 
 	@ApiAssignRiderResource()

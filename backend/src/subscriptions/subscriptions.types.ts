@@ -1,4 +1,4 @@
-export const ON_DAYS = {
+export const WEEK_DAYS = {
 	MONDAY: 'onMondays',
 	TUESDAY: 'onTuesdays',
 	WEDNESDAY: 'onWednesdays',
@@ -8,5 +8,4 @@ export const ON_DAYS = {
 	SUNDAY: 'onSundays',
 } as const;
 
-export type OnDays = keyof typeof ON_DAYS;
-export type Day = (typeof ON_DAYS)[OnDays];
+export type WeekDay = keyof typeof WEEK_DAYS;

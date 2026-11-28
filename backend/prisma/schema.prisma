@@ -180,9 +180,14 @@ model Subscription {
   customerId String   @map("customer_id") @db.VarChar(250)
 
   // Mutable fields
-  isActive   Boolean  @default(false) @map("is_active") @db.Boolean
-  isApproved Boolean  @default(false) @map("is_approved") @db.Boolean
-  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamp()
+  deliveryStreet     String   @map("delivery_street") @db.VarChar(250)
+  deliveryCity       String   @map("delivery_city") @db.VarChar(100)
+  deliveryPostalCode String   @map("delivery_postal_code") @db.VarChar(20)
+  deliveryLatitude   Float    @map("delivery_latitude") @db.DoublePrecision
+  deliveryLongitude  Float    @map("delivery_longitude") @db.DoublePrecision
+  isActive           Boolean  @default(false) @map("is_active") @db.Boolean
+  isApproved         Boolean  @default(false) @map("is_approved") @db.Boolean
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamp()
 
   // Front relation fields
   orders            Order[]
@@ -275,5 +280,4 @@ enum ScheduleSlot {
   SLOT_1930 @map("slot_1930")
   SLOT_2000 @map("slot_2000")
   SLOT_2030 @map("slot_2030")
-  SLOT_2100 @map("slot_2100")
 }
